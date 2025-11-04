@@ -3,6 +3,28 @@ Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[ver
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
 ## [Unreleased]
+## [0.0.12] — 2025-11-04
+### Added
+- Discord test 2
+
+### Changed
+- 
+
+### Fixed
+- 
+
+### Removed
+- 
+
+### Docs
+- 
+
+### DevOps
+- 
+
+### Notes
+- 
+
 ## [0.0.11] — 2025-11-04
 ### Added
 - Test: Discord bot
