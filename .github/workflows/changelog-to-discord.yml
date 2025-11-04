@@ -1,0 +1,55 @@
+name: Changelog to Discord
+
+on:
+  push:
+    branches: [ "**" ]
+    paths:
+      - "CHANGELOG.md"
+      - ".github/workflows/changelog-to-discord.yml"
+  pull_request:
+    paths:
+      - "CHANGELOG.md"
+  workflow_dispatch:
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract latest changelog entry
+        run: |
+          awk 'BEGIN{p=0} /^## \[/{ if(p) exit; p=1 } p{ print }' CHANGELOG.md > latest.txt || true
+          if [ ! -s latest.txt ]; then
+            echo "No version section found, using entire file."
+            cp CHANGELOG.md latest.txt
+          fi
+          echo "Chars in latest section: $(wc -c < latest.txt)"
+
+      - name: Prepare payload (truncate if too long)
+        run: |
+          MAX=1900
+          LEN=$(wc -c < latest.txt)
+          if [ "$LEN" -gt "$MAX" ]; then
+            head -c $MAX latest.txt > latest_cut.txt
+            printf "\n… (truncated, see CHANGELOG.md)" >> latest_cut.txt
+            FILE="latest_cut.txt"
+          else
+            FILE="latest.txt"
+          fi
+          echo "FILE=$FILE" >> $GITHUB_ENV
+
+      - name: Ensure secret exists
+        run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "Missing repository secret DISCORD_WEBHOOK"; exit 1;
+          fi
+
+      - name: Post to Discord
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          content=$(cat "$FILE" | jq -Rs .)
+          payload="{\"content\": $content}"
+          curl -f -H "Content-Type: application/json" -d "$payload" "$DISCORD_WEBHOOK"
