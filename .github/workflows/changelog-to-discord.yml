@@ -1,55 +1,131 @@
-name: Changelog to Discord
+name: Push changelog to Discord
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ "main" ]
     paths:
       - "CHANGELOG.md"
-      - ".github/workflows/changelog-to-discord.yml"
-  pull_request:
-    paths:
-      - "CHANGELOG.md"
-  workflow_dispatch:
+      - ".github/workflows/discord_changelog.yml"
+
+permissions:
+  contents: read
 
 jobs:
-  post:
+  send-discord:
     runs-on: ubuntu-latest
-    env:
-      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Extract latest changelog entry
+      - name: Extract latest block (Helioverse format)
+        id: extract
+        shell: bash
         run: |
-          awk 'BEGIN{p=0} /^## \[/{ if(p) exit; p=1 } p{ print }' CHANGELOG.md > latest.txt || true
-          if [ ! -s latest.txt ]; then
-            echo "No version section found, using entire file."
-            cp CHANGELOG.md latest.txt
-          fi
-          echo "Chars in latest section: $(wc -c < latest.txt)"
+          set -euo pipefail
 
-      - name: Prepare payload (truncate if too long)
-        run: |
-          MAX=1900
-          LEN=$(wc -c < latest.txt)
-          if [ "$LEN" -gt "$MAX" ]; then
-            head -c $MAX latest.txt > latest_cut.txt
-            printf "\n… (truncated, see CHANGELOG.md)" >> latest_cut.txt
-            FILE="latest_cut.txt"
-          else
-            FILE="latest.txt"
-          fi
-          echo "FILE=$FILE" >> $GITHUB_ENV
+          # Najnovší blok začína hlavičkou: [X.Y.Z] – YYYY-MM-DD (alebo s '-')
+          awk '
+            BEGIN{in_section=0}
+            /^\[[0-9]+\.[0-9]+\.[0-9]+\][[:space:]]*[–-][[:space:]]*[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]]*$/ {
+              if(in_section==0){in_section=1; print; next} else {exit}
+            }
+            { if(in_section==1){print} }
+          ' CHANGELOG.md > latest.txt
 
-      - name: Ensure secret exists
-        run: |
-          if [ -z "$DISCORD_WEBHOOK" ]; then
-            echo "Missing repository secret DISCORD_WEBHOOK"; exit 1;
+          if ! [ -s latest.txt ]; then
+            echo "ERROR: Nenájdený žiadny blok verzie vo formáte: [X.Y.Z] – YYYY-MM-DD" >&2
+            exit 1
           fi
 
-      - name: Post to Discord
+          header_line="$(head -n 1 latest.txt)"
+          version="$(echo "$header_line" | sed -E 's/^\[([0-9]+\.[0-9]+\.[0-9]+)\].*$/\1/')"
+          date="$(echo "$header_line" | sed -E 's/^\[[^]]+\][[:space:]]*[–-][[:space:]]*([0-9]{4}-[0-9]{2}-[0-9]{2}).*$/\1/')"
+
+          # Telo bez hlavičky
+          tail -n +2 latest.txt > body.txt
+
+          # Rozparcuj body do sekcií a pred každý riadok vlož "- "
+          rm -f Added.txt Changed.txt Fixed.txt Notes.txt || true
+          awk '
+            BEGIN{sec=""}
+            { gsub(/\r$/,"") }               # odseknúť CR, ak by bolo
+            $0=="Added"   {sec="Added";   next}
+            $0=="Changed" {sec="Changed"; next}
+            $0=="Fixed"   {sec="Fixed";   next}
+            $0=="Notes"   {sec="Notes";   next}
+            NF==0 {next}                     # prázdne riadky preskoč
+            sec!="" {print "- "$0 >> (sec".txt")}
+          ' body.txt
+
+          # Načítaj sekcie (môžu byť prázdne)
+          ADDED="$(cat Added.txt 2>/dev/null || true)"
+          CHANGED="$(cat Changed.txt 2>/dev/null || true)"
+          FIXED="$(cat Fixed.txt 2>/dev/null || true)"
+          NOTES="$(cat Notes.txt 2>/dev/null || true)"
+
+          {
+            echo "version=$version"
+            echo "date=$date"
+            echo "added<<EOF"
+            echo "$ADDED"
+            echo "EOF"
+            echo "changed<<EOF"
+            echo "$CHANGED"
+            echo "EOF"
+            echo "fixed<<EOF"
+            echo "$FIXED"
+            echo "EOF"
+            echo "notes<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post to Discord (embed fields)
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK }}
+          VERSION:     ${{ steps.extract.outputs.version }}
+          DATE:        ${{ steps.extract.outputs.date }}
+          ADDED:       ${{ steps.extract.outputs.added }}
+          CHANGED:     ${{ steps.extract.outputs.changed }}
+          FIXED:       ${{ steps.extract.outputs.fixed }}
+          NOTES:       ${{ steps.extract.outputs.notes }}
+        shell: bash
         run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          content=$(cat "$FILE" | jq -Rs .)
-          payload="{\"content\": $content}"
-          curl -f -H "Content-Type: application/json" -d "$payload" "$DISCORD_WEBHOOK"
+          set -euo pipefail
+          sudo apt-get update -y >/dev/null 2>&1 || true
+          sudo apt-get install -y jq >/dev/null 2>&1 || true
+
+          FIELDS='[]'
+          add_field () {
+            local name="$1"; local val="$2"
+            if [ -n "${val// /}" ]; then
+              FIELDS="$(echo "$FIELDS" | jq --arg n "$name" --arg v "$val" '. + [{name:$n, value:$v, inline:false}]')"
+            fi
+          }
+
+          add_field "Added"   "$ADDED"
+          add_field "Changed" "$CHANGED"
+          add_field "Fixed"   "$FIXED"
+          add_field "Notes"   "$NOTES"
+
+          PAYLOAD="$(jq -n \
+            --arg title "LunaLink – ${VERSION}" \
+            --arg date  "${DATE}" \
+            --argjson fields "${FIELDS}" \
+            '{
+              embeds: [{
+                title: $title,
+                color: 5814783,
+                fields: $fields,
+                footer: { text: ("Released " + $date) }
+              }]
+            }')"
+
+          RESP="$(curl -sS -w '\n%{http_code}' \
+                 -H 'Content-Type: application/json' \
+                 -X POST \
+                 -d "$PAYLOAD" \
+                 "$WEBHOOK_URL")"
+          HTTP_CODE="$(printf '%s' "$RESP" | tail -n1)"
+          echo "Discord HTTP code: $HTTP_CODE"
+          test "$HTTP_CODE" = "204" -o "$HTTP_CODE" = "200"
