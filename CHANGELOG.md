@@ -2,6 +2,26 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.22] – 2025-11-09
+
+Added
+- Build Mode: 1x tile ghost, tahanie obdlznika, potvrdenie uvolnenim.
+- ConstructionSite: cyan overlay s percent a ETA, dev cas ~10 s, po dobehu spawne budovu.
+- Building: prenesie size_cells, spusti Inside_Build, nastavi poziciu a z-index.
+- Inside_Build: vyplni podlahu a perimeter walls (TileMapLayer, assert exportov).
+- BuildUI: spodna lista (Build + placeholders), signal tool_requested.
+- CameraController: WASD pan, wheel/Q/E zoom, rychlost podla zoomu.
+- World struktura: Terrain(Main_Ground 128px), Buildings, Construction, BuildMode, Camera, UI.
+- Autowire: BuildMode si vie najst Ground TileMapLayer, ak nie je priradeny.
+
+Notes
+- BuildMode.gd - vyber a spawn ConstructionSite.
+- ConstructionSite.gd - percent a ETA -> po dobehu Building.
+- Building.gd - spusti interier.
+- Inside_Build.gd - Floors a Walls.
+- BuildUI.gd - emituje tool_requested.
+- CameraController.gd - pohyb a zoom kamery.
+
 [0.0.21] – 2025-11-09
 
 ### Added
