@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cyr31nhtawkjb"]
+
+[ext_resource type="Script" uid="uid://cbss7blmchuf5" path="res://scripts/build/ConstructionSite.gd" id="1_ai0yr"]
+
+[node name="ConstructionSite" type="Node2D"]
+script = ExtResource("1_ai0yr")
