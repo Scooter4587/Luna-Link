@@ -2,6 +2,32 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.23] – 2025-11-13
+
+Added
+Scripts config BuildCfg gd Autoload centralne nastavenia CELL_PX FOUNDATION_WALL_THICKNESS atlas pre floor a wall farby ghostu
+VSCode nastavenia file nesting pre Godot subory a skrytie pripon gd uid v exploreri a vyhladavani
+ROADMAP.md - zatiaľ veľmi základný roadmap na verziu 0.1 - ide iba o orientáciu na fundamentálnej úrovni.
+
+Changed
+Struktura skriptov presun do scripts exterior interior config
+BuildMode gd pouziva skutocny tile size z TileMapLayer pridal sa prstenec podla BuildCfg a jednotny vypocet rohov
+Upratane komentare a exporty pre lepsiu citatelnost
+
+Fixed
+Foundation sa po dokonceni vytvori presne v rozmere natiahnuteho ghostu namiesto 1x1
+Zarovnanie ghost a finalnej budovy je presne na pixel
+
+Removed
+Osobna cesta k Godotu z projektoveho priecinka vscode settings presunute do User Settings
+
+Notes
+chore build presun skriptov do exterior interior config a pridanie BuildCfg autoload
+fix build presne rozmery foundation a ghost pouziva tile size z TileMapLayer
+chore vscode nesting pre Godot a skrytie gd uid odstranenie osobnej cesty k Godotu z workspace
+
+
+
 [0.0.22] – 2025-11-09
 
 Added

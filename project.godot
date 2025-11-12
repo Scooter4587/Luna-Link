@@ -15,6 +15,15 @@ run/main_scene="uid://bvvbpdio45xnj"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+BuildCfg="*res://scripts/config/BuildCfg.gd"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+
 [input]
 
 cam_left={

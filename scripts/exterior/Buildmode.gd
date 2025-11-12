@@ -1,5 +1,6 @@
 extends Node2D
-# Build mód: výber nástroja z UI, ghost 1× tile, ťahanie obdĺžnika a vytvorenie ConstructionSite.
+## Build mód: výber nástroja z UI, ťahanie obdĺžnika a vytvorenie ConstructionSite.
+## Zachované tvoje správanie (+ pridaný ghost prstenec so šírkou z BuildCfg).
 
 enum Tool { NONE, EXTERIOR_COMPLEX }
 
@@ -10,8 +11,6 @@ enum Tool { NONE, EXTERIOR_COMPLEX }
 @export var building_scene: PackedScene
 @export var inside_build_scene: PackedScene
 @export var construction_site_scene: PackedScene
-
-@export var cell_px: int = 128
 
 var current_tool: Tool = Tool.NONE
 var dragging: bool = false
@@ -24,7 +23,7 @@ func _ready() -> void:
 	queue_redraw()
 	z_index = 1000
 
-	# --- AUTOWIRE terrain_grid (typované) ---
+	# --- AUTOWIRE terrain_grid ---
 	if terrain_grid == null:
 		var terrain: Node = get_node_or_null("../Terrain")
 		if terrain != null:
@@ -41,7 +40,7 @@ func _ready() -> void:
 	if terrain_grid == null:
 		push_error("[BuildMode] terrain_grid is NULL – priraď v Inspectore (Terrain/Main_Ground).")
 
-	# --- UI signál (typované) ---
+	# --- UI signál (BuildUI/BtnBuild fallback) ---
 	var ui: Node = get_node_or_null("../UI/BuildUI")
 	if ui != null:
 		if ui.has_signal("tool_requested"):
@@ -55,7 +54,7 @@ func _ready() -> void:
 	else:
 		push_warning("[BuildMode] UI/BuildUI not found")
 
-# Reakcia na kliky v spodnej lište – Build=0
+## Reakcia na kliky v spodnej lište – Build=0
 func on_ui_tool_requested(tool_id: int) -> void:
 	match tool_id:
 		0:
@@ -71,7 +70,7 @@ func on_ui_tool_requested(tool_id: int) -> void:
 			queue_redraw()
 			print("[BuildMode] Tool=NONE")
 
-# Vstupy myši: začiatok/koniec ťahania a živý ghost tile pod kurzorom.
+## Vstupy myši: začiatok/koniec ťahania a živý ghost tile pod kurzorom.
 func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_ESCAPE:
 		dragging = false
@@ -100,16 +99,15 @@ func _unhandled_input(e: InputEvent) -> void:
 					drag_b = c
 				queue_redraw()
 
-# Vytvorí a nakonfiguruje ConstructionSite podľa ťahaného obdĺžnika.
-# Vytvorí a nakonfiguruje ConstructionSite podľa ťahaného obdĺžnika.
+## Vytvorí a nakonfiguruje ConstructionSite podľa ťahaného obdĺžnika.
 func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 	var minx: int = mini(a.x, b.x)
 	var miny: int = mini(a.y, b.y)
 	var maxx: int = maxi(a.x, b.x)
 	var maxy: int = maxi(a.y, b.y)
-	var size: Vector2i = Vector2i(maxx - minx + 1, maxy - miny + 1)
+	var size: Vector2i = Vector2i(maxx - minx + 1, maxy - miny + 1) # INKLUZÍVNE!
 
-	if size.x < 2 or size.y < 2:
+	if size.x < BuildCfg.FOUNDATION_MIN_SIZE.x or size.y < BuildCfg.FOUNDATION_MIN_SIZE.y:
 		print("[BuildMode] Ignored: size too small =", size)
 		return
 	if construction_site_scene == null or building_scene == null or inside_build_scene == null:
@@ -124,28 +122,27 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 		push_error("[BuildMode] construction_root not found")
 		return
 
-	# 1) Inštancia mimo stromu (typované)
+	# 1) Inštancia mimo stromu
 	var site: Node2D = construction_site_scene.instantiate() as Node2D
 	site.name = "ConstructionSite_%d_%d" % [minx, miny]
 
-	# 2) Nastaviť exporty ešte mimo stromu
+	# 2) Nastaviť exporty mimo stromu
 	site.set("terrain_grid", terrain_grid)
 	site.set("top_left_cell", Vector2i(minx, miny))
 	site.set("size_cells", size)
-	site.set("cell_px", cell_px)
+	site.set("cell_px", BuildCfg.CELL_PX)
 	site.set("building_scene", building_scene)
 	site.set("inside_build_scene", inside_build_scene)
 	site.set("buildings_root_path", buildings_root)
 	site.set("z_index", 500)
 
-	# Test: fixných ~10 s
+	# DEV: fix 10 s
 	site.set("dev_mode", true)
 	site.set("dev_total_time", 10.0)
 
 	# 3) Až teraz pridať do stromu
 	construction_root_node.add_child(site)
 
-	# Debug (typované)
 	var scr: Script = site.get_script()
 	print("[BuildMode] Site added @", site.get_path(), " script=", scr)
 	print("[BuildMode] Site exports -> tl=", site.get("top_left_cell"),
@@ -153,41 +150,69 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 		" tg_is_null=", site.get("terrain_grid") == null)
 
 	site.add_to_group("construction_sites")
-
 	print("[BuildMode] ConstructionSite created @", Vector2i(minx, miny), " size=", size)
 
-# Kreslenie ghostov (1 tile + obdĺžnik).
+## Reálny rozmer jednej dlaždice podľa TileSetu (fallback na BuildCfg.CELL_PX)
+func _tile_px() -> Vector2:
+	if terrain_grid != null and terrain_grid.tile_set != null:
+		var sz: Vector2i = terrain_grid.tile_set.tile_size
+		return Vector2(sz.x, sz.y)
+	return Vector2(BuildCfg.CELL_PX, BuildCfg.CELL_PX)
+
+## Rohy jednej bunky v WORLD súradniciach (počítané z jej stredu)
+func _cell_corners_world(cell: Vector2i) -> Dictionary:
+	var half := _tile_px() * 0.5
+	var center_local: Vector2 = terrain_grid.map_to_local(cell)
+	var center_world: Vector2 = terrain_grid.to_global(center_local)
+	return { "tl": center_world - half, "br": center_world + half }
+
+## Kreslí ghost (1 tile pod kurzorom) a počas ťahania aj obdĺžnik vo veľkosti výberu
 func _draw() -> void:
-	if terrain_grid == null:
+	if terrain_grid == null or current_tool != Tool.EXTERIOR_COMPLEX:
 		return
 
-	if current_tool == Tool.EXTERIOR_COMPLEX:
-		# 1× tile ghost
-		var hc_world: Vector2 = _cell_to_world_center(hover_cell)
-		var hc_local: Vector2 = to_local(hc_world)
-		var tile_rect: Rect2 = Rect2(
-			hc_local - Vector2(float(cell_px), float(cell_px)) * 0.5,
-			Vector2(float(cell_px), float(cell_px))
-		)
-		draw_rect(tile_rect, Color(1,1,1,0.12), true)
-		draw_rect(tile_rect, Color(1,1,1,0.8), false, 1.5)
+	# --- 1× tile ghost pod kurzorom ---
+	var hc := _cell_corners_world(hover_cell)
+	var tl_tile_world: Vector2 = (hc["tl"] as Vector2)
+	var br_tile_world: Vector2 = (hc["br"] as Vector2)
+	var tl_tile_local: Vector2 = to_local(tl_tile_world)
+	var br_tile_local: Vector2 = to_local(br_tile_world)
+	var tile_rect: Rect2 = Rect2(tl_tile_local, br_tile_local - tl_tile_local)
+	draw_rect(tile_rect, BuildCfg.GHOST_TILE, true)
+	draw_rect(tile_rect, BuildCfg.GHOST_TILE_STROKE, false, 1.5)
 
-	if dragging and current_tool == Tool.EXTERIOR_COMPLEX:
+	# --- Obdĺžnik počas ťahania (INKLUZÍVNY výber) ---
+	if dragging:
 		var minx: int = mini(drag_a.x, drag_b.x)
 		var miny: int = mini(drag_a.y, drag_b.y)
 		var maxx: int = maxi(drag_a.x, drag_b.x)
 		var maxy: int = maxi(drag_a.y, drag_b.y)
 
-		var tl_world: Vector2 = _cell_to_world_center(Vector2i(minx, miny)) - Vector2(float(cell_px), float(cell_px)) * 0.5
-		var br_world: Vector2 = _cell_to_world_center(Vector2i(maxx, maxy)) + Vector2(float(cell_px), float(cell_px)) * 0.5
+		var tl_world: Vector2 = (_cell_corners_world(Vector2i(minx, miny))["tl"] as Vector2)
+		var br_world: Vector2 = (_cell_corners_world(Vector2i(maxx, maxy))["br"] as Vector2)
 		var tl_local: Vector2 = to_local(tl_world)
 		var br_local: Vector2 = to_local(br_world)
 		var rect: Rect2 = Rect2(tl_local, br_local - tl_local)
 
-		draw_rect(rect, Color(1,1,1,0.12), true)
-		draw_rect(rect, Color(1,1,1,0.9), false, 2.0)
+		# výplň
+		draw_rect(rect, BuildCfg.GHOST_FILL, true)
 
-# Pomocníci
+		# prstenec podľa hrúbky v tiles (prepočítané do px)
+		var tsize: Vector2 = _tile_px()
+		var tpx: float = float(BuildCfg.FOUNDATION_WALL_THICKNESS) * tsize.x
+		var tpy: float = float(BuildCfg.FOUNDATION_WALL_THICKNESS) * tsize.y
+
+		# top
+		draw_rect(Rect2(rect.position, Vector2(rect.size.x, tpy)), BuildCfg.GHOST_STROKE, true)
+		# left
+		draw_rect(Rect2(rect.position, Vector2(tpx, rect.size.y)), BuildCfg.GHOST_STROKE, true)
+		# bottom
+		draw_rect(Rect2(Vector2(rect.position.x, rect.end.y - tpy), Vector2(rect.size.x, tpy)), BuildCfg.GHOST_STROKE, true)
+		# right
+		draw_rect(Rect2(Vector2(rect.end.x - tpx, rect.position.y), Vector2(tpx, rect.size.y)), BuildCfg.GHOST_STROKE, true)
+
+
+## Pomocníci
 func _mouse_cell() -> Vector2i:
 	if terrain_grid == null:
 		push_error("[BuildMode] terrain_grid is null in _mouse_cell()")
