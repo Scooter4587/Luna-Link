@@ -2,6 +2,24 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.3] – 2025-11-15
+Added
+TopBar UI Panel
+Config skripty: GameClock.gd, GameState.gd, ResourceCfg.gd, TimeCfg.gd
+UI skript: TopBarUI.gd
+Prepojenie TopBarUI na GameState a GameClock – live zobrazenie resource hodnôt a aktuálneho času/dátumu
+Ovládanie rýchlosti času priamo v TopBarUI (Pause / 1x / 2x / 4x)
+
+Changed
+Prestavba UI stromu: jeden UI CanvasLayer obsahuje BuildUI a TopBarUI ako Control nody
+Úprava layoutu top baru – medzery medzi resource labelmi a bočné okraje pre lepšiu čitateľnosť
+
+Fixed
+Build mód znovu prijíma kliky po tom, čo root BuildUI a TopBarUI dostali Mouse Filter = Ignore
+Odstránený duplikovaný vnútorný BuildUI node, ktorý komplikoval štruktúru a signály
+
+
+
 [0.0.23] – 2025-11-13
 
 Added

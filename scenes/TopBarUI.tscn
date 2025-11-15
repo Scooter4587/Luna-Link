@@ -1,0 +1,123 @@
+[gd_scene load_steps=2 format=3 uid="uid://derui073uh73x"]
+
+[ext_resource type="Script" uid="uid://cgdcwcas8fgfp" path="res://scripts/ui/TopBarUI.gd" id="1_h5iv0"]
+
+[node name="TopBarUI" type="Control"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+script = ExtResource("1_h5iv0")
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RootHBox" type="HBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="LeftMargin" type="Control" parent="Panel/RootHBox"]
+custom_minimum_size = Vector2(24, 0)
+layout_mode = 2
+
+[node name="BaseBuildGroup" type="HBoxContainer" parent="Panel/RootHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+
+[node name="Lbl_BuildingMaterials" type="Label" parent="Panel/RootHBox/BaseBuildGroup"]
+layout_mode = 2
+text = "„BM: 0“"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Lbl_Equipment" type="Label" parent="Panel/RootHBox/BaseBuildGroup"]
+layout_mode = 2
+text = "„EQ: 0“"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Lbl_HeliumRaw" type="Label" parent="Panel/RootHBox/BaseBuildGroup"]
+layout_mode = 2
+text = "„Raw He: 0“"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Lbl_Helium3Refined" type="Label" parent="Panel/RootHBox/BaseBuildGroup"]
+layout_mode = 2
+text = "„He-3: 0“"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpecialGroup" type="HBoxContainer" parent="Panel/RootHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+
+[node name="Lbl_Innovations" type="Label" parent="Panel/RootHBox/SpecialGroup"]
+layout_mode = 2
+text = "„Innov: 0“"
+
+[node name="Lbl_EarthEnergy" type="Label" parent="Panel/RootHBox/SpecialGroup"]
+layout_mode = 2
+text = "„EarthE: 0“"
+
+[node name="CrewNeedsGroup" type="HBoxContainer" parent="Panel/RootHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+
+[node name="Lbl_Water" type="Label" parent="Panel/RootHBox/CrewNeedsGroup"]
+layout_mode = 2
+text = "„Water: 0“"
+
+[node name="Lbl_Food" type="Label" parent="Panel/RootHBox/CrewNeedsGroup"]
+layout_mode = 2
+text = "„Food: 0“"
+
+[node name="Lbl_Happiness" type="Label" parent="Panel/RootHBox/CrewNeedsGroup"]
+layout_mode = 2
+text = "„Happy: 50“"
+
+[node name="Lbl_Stress" type="Label" parent="Panel/RootHBox/CrewNeedsGroup"]
+layout_mode = 2
+text = "„Stress: 50“"
+
+[node name="TimeGroup" type="HBoxContainer" parent="Panel/RootHBox"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4
+
+[node name="Lbl_Time" type="Label" parent="Panel/RootHBox/TimeGroup"]
+layout_mode = 2
+text = "„00:00“"
+
+[node name="Lbl_Date" type="Label" parent="Panel/RootHBox/TimeGroup"]
+layout_mode = 2
+text = "„Day 01, January 2073“"
+
+[node name="Btn_Pause" type="Button" parent="Panel/RootHBox/TimeGroup"]
+layout_mode = 2
+text = "„II“"
+
+[node name="Btn_1x" type="Button" parent="Panel/RootHBox/TimeGroup"]
+layout_mode = 2
+text = "„1x“"
+
+[node name="Btn_2x" type="Button" parent="Panel/RootHBox/TimeGroup"]
+layout_mode = 2
+text = "„2x“"
+
+[node name="Btn_4x" type="Button" parent="Panel/RootHBox/TimeGroup"]
+layout_mode = 2
+text = "„4x“"
+
+[node name="RightMargin" type="Control" parent="Panel/RootHBox"]
+custom_minimum_size = Vector2(24, 0)
+layout_mode = 2

@@ -18,6 +18,8 @@ config/icon="res://icon.svg"
 [autoload]
 
 BuildCfg="*res://scripts/config/BuildCfg.gd"
+Clock="*res://scripts/config/GameClock.gd"
+State="*res://scripts/config/GameState.gd"
 
 [display]
 

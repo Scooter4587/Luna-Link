@@ -1,12 +1,13 @@
-[gd_scene load_steps=8 format=3 uid="uid://bvvbpdio45xnj"]
+[gd_scene load_steps=9 format=3 uid="uid://bvvbpdio45xnj"]
 
 [ext_resource type="PackedScene" uid="uid://dcmf7xuptleyw" path="res://scenes/Terrain.tscn" id="1_kqs1s"]
 [ext_resource type="PackedScene" uid="uid://b3jdkp4vsbhya" path="res://scenes/BuilUI.tscn" id="2_32lhk"]
-[ext_resource type="Script" uid="uid://771gw0ni4g8d" path="res://scripts/build/Buildmode.gd" id="2_d1c63"]
+[ext_resource type="Script" uid="uid://771gw0ni4g8d" path="res://scripts/exterior/Buildmode.gd" id="2_d1c63"]
 [ext_resource type="PackedScene" uid="uid://dpaynrvl2p2ya" path="res://scenes/Building.tscn" id="3_0uv0p"]
 [ext_resource type="Script" uid="uid://b6u5rh15bjuef" path="res://scripts/world/CameraController.gd" id="3_7g83o"]
 [ext_resource type="PackedScene" uid="uid://c6usyf1y38r6y" path="res://scenes/Inside_Build.tscn" id="4_b3faq"]
 [ext_resource type="PackedScene" uid="uid://cyr31nhtawkjb" path="res://scenes/ConstructionSite.tscn" id="6_0uv0p"]
+[ext_resource type="PackedScene" uid="uid://derui073uh73x" path="res://scenes/TopBarUI.tscn" id="8_b3faq"]
 
 [node name="World" type="Node2D"]
 
@@ -26,6 +27,10 @@ construction_site_scene = ExtResource("6_0uv0p")
 [node name="Camera" type="Camera2D" parent="."]
 script = ExtResource("3_7g83o")
 
-[node name="UI" parent="." instance=ExtResource("2_32lhk")]
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="BuildUI" parent="UI" instance=ExtResource("2_32lhk")]
+
+[node name="TopBarUI" parent="UI" instance=ExtResource("8_b3faq")]
 
 [editable path="Terrain"]
