@@ -7,6 +7,12 @@ const CELL_PX := 128
 
 ## Minimálny rozmer základu (foundation)
 const FOUNDATION_MIN_SIZE := Vector2i(2, 2)
+const EXTRACTOR_SIZE_CELLS: Vector2i = Vector2i(3, 3) # footprint 3×3 (ľahko zmeň podľa sprite)
+const GHOST_HINT        := Color(0.2, 0.6, 1.0, 0.25) # modrá výplň pre “hint”
+const GHOST_HINT_STROKE := Color(0.3, 0.8, 1.0, 1.0)  # modrá linka pre “hint”
+
+## Konštanta pre hodiny stavby
+const FOUNDATION_HOURS_PER_TILE: float = 0.05  # napr. 20 tiles = 1 herná hodina
 
 ## Hrúbka obvodového múru v dlaždiciach (ovplyvní ghost prstenec a prípadné okrajové kladenie)
 var FOUNDATION_WALL_THICKNESS := 1
@@ -20,3 +26,9 @@ var GHOST_FILL  := Color(0.2, 0.8, 1.0, 0.28)
 var GHOST_STROKE:= Color(1, 1, 1, 0.95)
 var GHOST_TILE  := Color(1, 1, 1, 0.12)
 var GHOST_TILE_STROKE := Color(1, 1, 1, 0.8)
+
+# --- Extractor vizuál pre ghost ---
+const EXTRACTOR_GHOST_PX: Vector2 = Vector2(200.0, 200.0) # zhodné s tvojím Sprite2D (200×200)
+
+# Voliteľne farby hintov (modrá na snap)
+const GHOST_HINT_FILL: Color = Color(0.25, 0.55, 1.0, 0.14)

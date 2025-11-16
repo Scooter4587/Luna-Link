@@ -2,6 +2,29 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.31] – 2025-11-16
+Added
+GameClock (hodinový model času) s pauzou a rýchlosťami (pause/x1/x2/x4); signály hour_changed, minute_changed
+ConstructionSite viazaný na clock: režimy GAME_HOURS_FIXED (foundation) a GAME_MINUTES_FIXED (extractor); overlay s percentami a ETA
+BuildMode nástroj EXTERIOR_EXTRACTOR; snap na ResourceNode (modré hinty), zelený/červený ghost s reálnym footprintom (200×200 px)
+BMExtractor: automatické napojenie na najbližší ResourceNode; produkcia 1× za hernú hodinu (building_materials)
+Building: po dokončení foundation sa spawne interiér (Inside_Build) podľa size_cells
+
+Changed
+Foundation používa ConstructionSite na herných hodinách; čas sa počíta podľa plochy
+Ghost pre foundation: presný 1× tile pod kurzorom + ťahaný obdĺžnik s prstencom hrúbky z BuildCfg
+Finalizácia stavieb: pozícia sa určí pred add_child, budova má správnu polohu už v _ready()
+ConstructionSite robustne hľadá cieľový ../Buildings (fallback), rešpektuje buildings_root_path
+Extractor: cena BM + Equipment; node sa počas rozostavania označí ako obsadený
+BMExtractor: debug logy vypnuté v základe
+
+Fixed
+Nesprávne centrovanie budov a extractorov (snap na stred ResourceNode)
+Nepravidelný foundation ghost počas ťahania (zarovnanie na grid)
+Nesprávne správanie pri pauze/rýchlostiach – stavby a produkcia teraz bežia výhradne cez GameClock
+Chyby v odpojovaní GameClock signálov a drobné duplicity helperov
+
+
 [0.0.3] – 2025-11-15
 Added
 TopBar UI Panel

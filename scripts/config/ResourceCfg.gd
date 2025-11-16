@@ -44,21 +44,23 @@ const ORDER_CREW_NEEDS: Array[StringName] = [
 const RESOURCES: Dictionary = {
     # --- BASE BUILD ----------------------------------------------------------
     &"building_materials": {
-        "display_name": "Building Materials",
-        "category": ResourceCategory.BASE_BUILD,
-        "type": ResourceType.STOCK,
-        "icon": "", # TODO: doplniť cestu na ikonu, napr. res://assets/ui/resources/building_materials.png
-        "tooltip": "Universal construction material for lunar structures.",
-        "can_go_negative": false,
+    "display_name": "Building Materials",
+    "category": ResourceCategory.BASE_BUILD,
+    "type": ResourceType.STOCK,
+    "icon": "", # TODO: doplniť cestu na ikonu, napr. res://assets/ui/resources/building_materials.png
+    "tooltip": "Universal construction material for lunar structures.",
+    "can_go_negative": false,
+    "initial": 2000.0,
     },
 
     &"equipment": {
-        "display_name": "Equipment",
-        "category": ResourceCategory.BASE_BUILD,
-        "type": ResourceType.STOCK,
-        "icon": "",
-        "tooltip": "Tools, furniture and maintenance hardware for colony facilities.",
-        "can_go_negative": false,
+    "display_name": "Equipment",
+    "category": ResourceCategory.BASE_BUILD,
+    "type": ResourceType.STOCK,
+    "icon": "",
+    "tooltip": "Tools, furniture and maintenance hardware for colony facilities.",
+    "can_go_negative": false,
+    "initial": 100.0,
     },
 
     &"helium_raw": {

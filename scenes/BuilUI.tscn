@@ -71,7 +71,8 @@ text = "Placeholder"
 
 [node name="BtnUtilities" type="Button" parent="PanelContainer/HBoxContainer"]
 layout_mode = 2
-text = "Placeholder"
+text = "Extractor
+"
 
 [node name="BtnDemolish" type="Button" parent="PanelContainer/HBoxContainer"]
 layout_mode = 2

@@ -31,6 +31,18 @@ class_name TopBarUI
 @onready var btn_2x: Button = $Panel/RootHBox/TimeGroup/Btn_2x
 @onready var btn_4x: Button = $Panel/RootHBox/TimeGroup/Btn_4x
 
+const REAL_SECONDS_PER_GAME_HOUR: float = 2.0   # príklad
+const HOURS_PER_DAY: int = 24
+const DAYS_PER_MONTH: int = 30
+const MONTH_NAMES: Array[String] = ["January","February","January", "February", "March", "April", "May", "June",
+	"July", "August", "September", "October", "November", "December"]
+const SPEEDS := {
+	"pause": 0.0,
+	"x1": 1.0,
+	"x2": 2.0,
+	"x4": 4.0,
+}
+
 # Mapovanie resource id -> konkrétny Label v top bare.
 var _resource_labels: Dictionary = {}
 

@@ -17,24 +17,24 @@ func _ready() -> void:
 
 # -- Inicializácia ------------------------------------------------------------
 
+# -- Inicializácia ------------------------------------------------------------
+
 func _init_resources() -> void:
     resources.clear()
 
-    for id in ResourceCfg.get_all_ids():
-        var def: Dictionary = ResourceCfg.get_def(id)
-        var value: float = 0.0
+    # Inicializuj všetky resource podľa definícií v ResourceCfg.
+    for id in ResourceCfg.RESOURCES.keys():
+        var def: Dictionary = ResourceCfg.RESOURCES[id]
+        var initial_val: float = 0.0
+        if def.has("initial"):
+            initial_val = float(def["initial"])
+        resources[id] = initial_val
 
-        if ResourceCfg.is_status(id):
-            # Statusové hodnoty (napr. happiness, stress) začneme niekde uprostred.
-            var min_v: float = float(def.get("min_value", 0.0))
-            var max_v: float = float(def.get("max_value", 100.0))
-            value = (min_v + max_v) * 0.5
-        else:
-            # Ostatné stock/progress hodnoty začínajú na 0.0, neskôr môžeme
-            # pridať "initial" do ResourceCfg, ak bude treba.
-            value = 0.0
-
-        resources[id] = value
+    # Špeciálne defaulty pre status resource – ak nie sú v definícii.
+    if resources.has(&"happiness") and resources[&"happiness"] <= 0.0:
+        resources[&"happiness"] = 50.0
+    if resources.has(&"stress") and resources[&"stress"] <= 0.0:
+        resources[&"stress"] = 50.0
 
 
 # -- Verejné API: čítanie -----------------------------------------------------
@@ -150,3 +150,28 @@ func _apply_clamp(id: StringName, value: float) -> float:
     # Ostatné typy necháme bez min/max clampu (okrem 0 pri can_go_negative=false,
     # ktorý sme už riešili v add_resource).
     return value
+
+func can_afford(cost: Dictionary) -> bool:
+    # cost: { "building_materials": 50.0, "equipment": 10.0, ... }
+    for id in cost.keys():
+        var need: float = float(cost[id])
+        if get_resource(id) < need:
+            return false
+    return true
+
+
+func apply_cost(cost: Dictionary) -> void:
+    # Odpíše zdroje podľa cost slovníka (NEKONTROLUJE stav; používaj cez try_spend).
+    for id in cost.keys():
+        var need: float = float(cost[id])
+        add_resource(id, -need)
+
+
+func try_spend(cost: Dictionary) -> bool:
+    # Skúsi odpísať zdroje; vráti true/false podľa úspechu.
+    # Používanie:
+    #   var ok := State.try_spend({ &"building_materials": 40.0 })
+    if not can_afford(cost):
+        return false
+    apply_cost(cost)
+    return true
