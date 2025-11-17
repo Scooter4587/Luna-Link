@@ -1,108 +1,98 @@
-# Luna Link – Roadmap to Version 0.1.0
-Version 0.0.23 → 0.1.0
+# Roadmap 0.0.4 → 0.0.5 – Building System
 
-Základný cieľ: vytvoriť prvý funkčný herný cyklus
-postavím → spotrebujem zdroje → ťažím → sledujem HUD → môžem stavať ďalej
+## Cieľ 0.0.5
 
----
+Na verzii **0.0.5** vieme na testovacej scéne otestovať všetky základné typy stavieb cez jednotný, dátovo riadený systém:
 
-## Milník M1 – 0.0.24 Foundations polish
-Cieľ: stabilné základy stavby a čistý projekt
-- Upratať scripts do priečinkov exterior, interior, config
-- BuildCfg ako jediné miesto pre hodnoty (CELL_PX, FOUNDATION_WALL_THICKNESS, farby)
-- Foundation sa presne zhoduje s ghostom po natiahnutí
+- **domain:** `exterior` / `interior`
+- **footprint_type:** `fixed` / `rect_drag` / `path`
+- **anchor_type:** `free` / `on_resource_node` / `on_foundation` / `inside_room`
 
----
+ALFA typy stavieb:
 
-## Milník M2 – 0.0.25 Zdroje: dátový model a stav hry
-Cieľ: mať jednoduché účtovníctvo zdrojov
-- Vytvoriť autoload scripts/config/ResourceCfg.gd s definíciou zdrojov (energia, betón)
-- Vytvoriť autoload scripts/GameState.gd s runtime počítadlami a signálom resource_changed
-- Výstup: funkcie add_resource, spend_resource, can_spend
+- `foundation_basic` – exterior, rect_drag, free
+- `bm_extractor` – exterior, fixed, on_resource_node
+- `solar_panel` – exterior, fixed, free (resp. neskôr on_foundation)
+- `power_cable` – exterior, path, free
+- `room_basic` – interior, rect_drag, on_foundation (prototyp interiéru)
 
 ---
 
-## Milník M3 – 0.0.26 HUD pre zdroje
-Cieľ: mať zobrazenie stavu energie a betónu
-- Jednoduchý HUD panel v UI
-- Aktualizácia pri zmene zdrojov pomocou signálu resource_changed
-- Výstup: vždy viditeľný počet zdrojov
+## 0.0.4 – Východzí stav
+
+- Existujúci extraktor a build mód sú funkčné, ale:
+  - logika je šitá na mieru konkrétnej stavbe,
+  - neexistuje jednotný `BuildingsCfg`,
+  - neexistujú zdieľané služby `PlacementService`, `GhostService`, `ConstructionService`.
+- GameClock už existuje a riadi čas (pauza, rýchlosť), ale nie je ešte napojený na jednotný systém stavby.
 
 ---
 
-## Milník M4 – 0.0.27 Stavba s nákladom (cost)
-Cieľ: foundation sa postaví len ak má hráč dostatok materiálu
-- BuildMode kontroluje cost podľa ResourceCfg
-- Ak zdroje nestačia, zobraziť hlášku a nestavať
-- Po potvrdení stavby odpočítať betón zo zásob
-- Výstup: stavby spotrebúvajú materiál
+## 0.0.41 – Dizajn & BuildingsCfg skeleton
+
+**Cieľ:** mať jasno v dizajne a kostru `BuildingsCfg`, bez zásahu do funkčnej hry.
+
+Úlohy:
+
+- Spísať do dokumentácie (napr. `docs/dev-notes.md` alebo úvod ROADMAP):
+  - osi: `domain`, `footprint_type`, `anchor_type`,
+  - ALFA typy stavieb (foundation_basic, bm_extractor, solar_panel, power_cable, room_basic).
+- Vytvoriť skript / resource `BuildingsCfg` (zatím skeleton):
+  - zadefinovať základnú štruktúru dát (id, domain, footprint_type, anchor_type, size_cells, pivot_cell, placement_rules, behaviors, cost, build_time…),
+  - zatiaľ môže ísť o pseudo-dáta / placeholder hodnoty.
+
+Výsledok: existuje jeden jasný zdroj pravdy pre budovy (aj keď ešte nie je plne využitý).
 
 ---
 
-## Milník M5 – 0.0.28 Resource nodes a ťažba
-Cieľ: zaviesť jednoduchú ťažbu betónu
-- Vytvoriť resource node tiles (napr. regolit)
-- MiningRig budova ťaží betón z node pod sebou každé X sekúnd
-- Výstup: pri mining rigu rastie počet betónu, ak stojí na node
+## 0.0.42 – BuildingsCfg napojený na existujúci build (bez nových služieb)
+
+**Cieľ:** hra stále funguje ako doteraz, ale základné parametre budov už idú z `BuildingsCfg`.
+
+Úlohy:
+
+- Doplniť do `BuildingsCfg` reálne definície pre:
+  - `foundation_basic`
+  - `bm_extractor`
+  - `solar_panel`
+  - `power_cable` (zatiaľ môže byť bez reálnej logiky, len ako definícia).
+- V existujúcom kóde build módu:
+  - začať čítať vybrané hodnoty z `BuildingsCfg` (cost, build_time, základný footprint) namiesto natvrdo zakódovaných čísel,
+  - zachovať starý flow, aby sa nič nerozbilo.
+
+Výsledok: `BuildingsCfg` je jediný zdroj pravdy pre základné parametre budov, systém je stále legacy, ale už má dátový základ.
 
 ---
 
-## Milník M6 – 0.0.29 Energia
-Cieľ: pridať základný energetický systém
-- SolarPanel vyrába energiu
-- Budovy majú power_draw a spotrebúvajú energiu
-- Ak je nedostatok energie, spotrebné budovy sa pozastavia
-- Výstup: bez soláru ťažba stojí, so solárom beží
+## 0.0.43 – PlacementService (fixed + rect_drag)
+
+**Cieľ:** jednotné umiestňovanie pre foundation + fixed budovy cez `PlacementService`.
+
+Úlohy:
+
+- Vytvoriť `PlacementService`:
+  - vie pracovať s `footprint_type = fixed` a `rect_drag`,
+  - z `BuildingsCfg` číta:
+    - `footprint_type`
+    - `size_cells`, `pivot_cell`
+    - `anchor_type`
+    - `placement_rules` (minimálne: `FreeArea`, `OnResourceNode`).
+- Presunúť existujúci placement kód:
+  - z extraktora a foundation do `PlacementService`,
+  - UI/build mód volá už len `PlacementService` (napr. `get_preview_footprint`, `validate_placement`).
+- `power_cable` zatiaľ nemusí byť plne funkčný – path logika bude riešená neskôr (0.0.5), ale typ je už pripravený v configu.
+
+Výsledok: foundation, extractor a solar používajú spoločnú logiku overovania pozície, aj keď ghost a construction sú ešte staré.
 
 ---
 
-## Milník M7 – 0.0.30 UX a save systém
-Cieľ: zlepšiť použiteľnosť a základné uloženie
-- Pridať krátke textové hlášky (toast) pri nedostatku zdrojov
-- Možnosť resetu hry
-- Stub na save a load pomocou JSON
-- Výstup: uloženie a načítanie zásob a budov
+## 0.0.44 – GhostService + jednotný build input
 
----
+**Cieľ:** jeden ghost systém a jednotné ovládanie pre všetky exterior fixed/rect_drag stavby.
 
-## Milník M8 – 0.1.0 First playable loop
-Cieľ: mini herná slučka na mesiaci
-- Začiatok s malým množstvom betónu
-- Postaviť solárny panel
-- Postaviť ťažobnú budovu na node
-- Nazbierať betón a rozšíriť foundation
-- HUD ukazuje zdroje, energia rozhoduje o činnosti, stavby spotrebúvajú zdroje
-- Výstup: jednoduchý, ale kompletný základ hry
+Úlohy:
 
----
-
-## Technický rámec
-- Autoloady: BuildCfg, ResourceCfg, GameState
-- Existujúce skripty sa rozšíria podľa potreby, bez pridávania nových priečinkov
-- Minimalistický počet scén: Foundation, SolarPanel, MiningRig
-- Rozšíriteľný základ pre budúce systémy (vzduch, životná podpora, kolonisti)
-
----
-
-## Návrh API (pre ResourceCfg a GameState)
-GameState.gd
-- get(resource) → int
-- add(resource, amount)
-- can_spend(resource, amount) → bool
-- spend(resource, amount) → bool
-
-ResourceCfg.gd
-- RES = { energy, concrete }
-- COST = { Foundation, SolarPanel, MiningRig }
-- POWER = { SolarPanel production, MiningRig draw }
-
----
-
-## Pripravené commit správy
-- feat(resources): GameState autoload a ResourceCfg definície
-- feat(ui): HUD panel pre energiu a betón
-- feat(build): kontrola cost pred potvrdením stavby
-- feat(mining): MiningRig ťaží betón z node
-- feat(power): SolarPanel produkcia a power draw logika
-- chore(save): jednoduchý JSON save load stub
-- 0.1.0: first playable loop
+- Vytvoriť `GhostService`:
+  - dostane od `PlacementService` footprint + valid/invalid status,
+  - vykreslí duchov (tiles / sprite) a zafarbí ich podľa validácie,
+  - používa `footprint_type`, `size_cells`, `pivot_cell`,_

@@ -2,6 +2,13 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.4] – 2025-11-17 Základy prestavby Building systém
+Added
+BuildingsCfg.gd - Dátový skeleton pre konfigurácie budov - jednotný input na budovy
+dev-notes.md - pridaný postup a ciele do verzie 0.0.5
+ROADMAP.md - Updatovaný postup od 0.0.4 do 0.0.5
+
+
 [0.0.31] – 2025-11-16
 Added
 GameClock (hodinový model času) s pauzou a rýchlosťami (pause/x1/x2/x4); signály hour_changed, minute_changed
