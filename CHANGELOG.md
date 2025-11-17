@@ -2,6 +2,15 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.42] – 2025-11-18
+Added
+services folder - bude slúžiť čisto pre logiku a opakovateľné skripty. 
+PlacementService: prvá verzia výpočtu footprintu pre `fixed` a `rect_drag` budovy, napojená na BuildingsCfg.
+
+Notes
+Otestovanie mechaniky cez debug - Použitý script test_placement.gd
+
+
 [0.0.41] – 2025-11-17
 Added
 BMExtractor: prvé napojenie na BuildingsCfg.gd – extraktor pri spawne načíta svoju konfiguráciu z dátového configu (zatiaľ len na debug/log účely, bez zmeny gameplay).
