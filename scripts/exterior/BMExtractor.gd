@@ -6,10 +6,12 @@ class_name BMExtractor
 @export var production_multiplier: float = 1.0
 @export var debug_logs: bool = false
 
+var build_cfg: Dictionary = BuildingsCfg.get_building("bm_extractor")
 var linked_node: ResourceNode = null
 var _clock: Node = null
 
 func _ready() -> void:
+	print("BMExtractor build cfg:", build_cfg)
 	# 1) skús nájsť hneď (malo by stačiť po fixe v ConstructionSite)
 	linked_node = _find_nearest_node()
 	if linked_node == null:

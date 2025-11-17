@@ -2,7 +2,19 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
-[0.0.4] – 2025-11-17 Základy prestavby Building systém
+[0.0.41] – 2025-11-17
+Added
+BMExtractor: prvé napojenie na BuildingsCfg.gd – extraktor pri spawne načíta svoju konfiguráciu z dátového configu (zatiaľ len na debug/log účely, bez zmeny gameplay).
+
+Notes
+Update 0.0.4 Neprešiel na discord:
+Added
+BuildingsCfg.gd - Dátový skeleton pre konfigurácie budov - jednotný input na budovy
+dev-notes.md - pridaný postup a ciele do verzie 0.0.5
+ROADMAP.md - Updatovaný postup od 0.0.4 do 0.0.5
+
+
+[0.0.4] – 2025-11-17
 Added
 BuildingsCfg.gd - Dátový skeleton pre konfigurácie budov - jednotný input na budovy
 dev-notes.md - pridaný postup a ciele do verzie 0.0.5
