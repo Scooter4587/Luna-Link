@@ -1,9 +1,10 @@
 extends Node
 
 const PlacementServiceScript: GDScript = preload("res://scripts/services/placement_service.gd")
+const GhostServiceScript: GDScript = preload("res://scripts/services/ghost_service.gd")
 
 func _ready() -> void:
-	# 1) Footprint test - ostáva
+	# 1) Footprint test
 	var extractor_cells: Array[Vector2i] = PlacementServiceScript.get_footprint(
 		"bm_extractor",
 		Vector2i(10, 10)
@@ -17,10 +18,10 @@ func _ready() -> void:
 	)
 	print("Foundation rect footprint (0,0)-(2,1): ", foundation_cells)
 
-	# 2) Validácia - BM extractor na resource node, nič neblokuje
+	# 2) Valid + ghost OK
 	var ctx_ok: Dictionary = {
-		"occupied_cells": {},                           # nič nie je obsadené
-		"resource_cells": [Vector2i(10, 9)],           # resource tile pod extraktorom
+		"occupied_cells": {},
+		"resource_cells": [Vector2i(10, 9)],
 	}
 	var res_ok: Dictionary = PlacementServiceScript.validate_placement(
 		"bm_extractor",
@@ -29,9 +30,16 @@ func _ready() -> void:
 	)
 	print("Validate extractor (on resource, free): ", res_ok)
 
-	# 3) Validácia - BM extractor na resource, ale jeden tile obsadený
+	var ghost_ok: Dictionary = GhostServiceScript.build_ghost_info(
+		"bm_extractor",
+		extractor_cells,
+		res_ok
+	)
+	print("Ghost info extractor (OK): ", ghost_ok)
+
+	# 3) Obsadený tile + ghost BLOCKED
 	var ctx_blocked: Dictionary = {
-		"occupied_cells": {Vector2i(11, 9): true},     # jeden z footprint tiles je obsadený
+		"occupied_cells": {Vector2i(11, 9): true},
 		"resource_cells": [Vector2i(10, 9)],
 	}
 	var res_blocked: Dictionary = PlacementServiceScript.validate_placement(
@@ -41,14 +49,9 @@ func _ready() -> void:
 	)
 	print("Validate extractor (tile occupied): ", res_blocked)
 
-	# 4) Validácia - foundation s FreeArea, ale kolízia
-	var ctx_foundation: Dictionary = {
-		"occupied_cells": {Vector2i(1, 0): true},      # v strede rectu je obsadený tile
-		"resource_cells": [],
-	}
-	var res_foundation: Dictionary = PlacementServiceScript.validate_placement(
-		"foundation_basic",
-		foundation_cells,
-		ctx_foundation
+	var ghost_blocked: Dictionary = GhostServiceScript.build_ghost_info(
+		"bm_extractor",
+		extractor_cells,
+		res_blocked
 	)
-	print("Validate foundation (with occupied tile): ", res_foundation)
+	print("Ghost info extractor (blocked): ", ghost_blocked)

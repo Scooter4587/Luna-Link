@@ -2,6 +2,14 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.44] – 2025-11-18
+Added
+GhostService: prepojenie výstupu z PlacementService.validate_placement() na ghost logiku (per-tile VALID/BLOCKED, textové chyby).
+Debug: testovací skript na World pre overenie footprintu, validácie a ghost info.
+
+Notes
+Napojený testovací skript na World Main Node - Treba odpojiť v budúcnosti.
+
 [0.0.43] – 2025-11-18
 Added
 Valide placement - get_footprint a validate_placement mechanika nahodená a otestovaná
