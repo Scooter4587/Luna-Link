@@ -53,6 +53,7 @@ var _warned_missing_root: bool = false
 # --- Lifecycle ----------------------------------------------------------------
 
 func _ready() -> void:
+	add_to_group("buildings")
 	# Nastav celkový "čas" podľa time_mode
 	match time_mode:
 		BuildTimeMode.GAME_HOURS_FIXED:
@@ -203,6 +204,7 @@ func _finalize_build() -> void:
 	# Prenos parametrov do budovy (ak ich podporuje)
 	b2d.set("cell_px", cell_px)
 	b2d.set("size_cells", size_cells)
+	b2d.set("top_left_cell", top_left_cell)
 	if inside_build_scene != null and _has_property(b2d, &"interior_scene"):
 		b2d.set("interior_scene", inside_build_scene)
 
@@ -338,3 +340,17 @@ func _disconnect_clock() -> void:
 	elif time_mode == BuildTimeMode.GAME_HOURS_FIXED:
 		if _game_clock.is_connected("hour_changed", Callable(self, "_on_clock_hour_changed")):
 			_game_clock.disconnect("hour_changed", Callable(self, "_on_clock_hour_changed"))
+
+func get_occupied_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+
+	# Predpokladám, že ConstructionSite má tieto premenne:
+	# - top_left_cell: Vector2i
+	# - size_cells:    Vector2i
+	var tl: Vector2i = top_left_cell
+
+	for y: int in size_cells.y:
+		for x: int in size_cells.x:
+			cells.append(Vector2i(tl.x + x, tl.y + y))
+
+	return cells

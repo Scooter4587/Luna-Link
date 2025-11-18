@@ -4,6 +4,9 @@ extends Node2D
 
 enum Tool { NONE, EXTERIOR_COMPLEX, EXTERIOR_EXTRACTOR }
 
+const PlacementServiceScript: GDScript = preload("res://scripts/services/placement_service.gd")
+const GhostServiceScript: GDScript = preload("res://scripts/services/ghost_service.gd")
+
 const FOUNDATION_COST_PER_TILE_BM: float = 5.0
 const EXTRACTOR_COST_BM: float = 100.0
 const EXTRACTOR_COST_EQ: float = 20.0
@@ -158,6 +161,40 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 		print("[BuildMode] Ignored: size too small =", size)
 		return
 
+	# --- VALIDÁCIA PLACEMENTU cez PlacementService ---------------------------
+	var building_id: String = "foundation_basic"
+
+	# rect_drag footprint – použijeme pôvodné a,b (funkcia už rieši min/max)
+	var footprint: Array[Vector2i] = PlacementServiceScript.get_footprint(
+		building_id,
+		a,
+		b
+	)
+
+	var ctx: Dictionary = {}
+	ctx["occupied_cells"] = _compute_occupied_cells()
+	ctx["resource_cells"] = []  # foundation nepotrebuje resource node
+
+	var validation: Dictionary = PlacementServiceScript.validate_placement(
+		building_id,
+		footprint,
+		ctx
+	)
+
+	var ghost_info: Dictionary = GhostServiceScript.build_ghost_info(
+		building_id,
+		footprint,
+		validation
+	)
+
+	if not bool(ghost_info.get("is_valid", true)):
+		print("[BuildMode] Invalid placement for %s: %s" % [
+			building_id,
+			ghost_info.get("errors", [])
+		])
+		return  # STOP – foundation sa nepostaví
+	# -------------------------------------------------------------------------
+
 	# --- RESOURCE COST: Foundation žerie Building Materials -------------------
 	var tile_count: int = size.x * size.y
 	var total_cost_bm: float = float(tile_count) * FOUNDATION_COST_PER_TILE_BM
@@ -239,7 +276,50 @@ func _start_extractor_at_node(node_at_center: ResourceNode) -> void:
 		print("[BuildMode] Node ", node_at_center.name, " už má extractor (alebo rozostavaný).")
 		return
 
-	# Náklady
+	# --- 1) Vypočítaj footprint podľa BuildingsCfg + pozície node ----------------
+	var building_id := "bm_extractor"
+	var cfg := BuildingsCfg.get_building(building_id)
+	if cfg.is_empty():
+		push_error("[BuildMode] Missing cfg for bm_extractor v BuildingsCfg")
+		return
+
+	var footprint_size: Vector2i = cfg.get("size_cells", Vector2i.ONE)
+
+	# stred grid tile pod node
+	var snap_center: Vector2 = _grid_center_from_world(node_at_center.global_position)
+	var top_left_cell: Vector2i = _top_left_cell_for_center(snap_center, footprint_size)
+
+	# pre validity-check potrebujeme zoznam všetkých buniek footprintu
+	var footprint: Array[Vector2i] = []
+	for y in footprint_size.y:
+		for x in footprint_size.x:
+			footprint.append(Vector2i(top_left_cell.x + x, top_left_cell.y + y))
+
+	# --- 2) Validácia cez PlacementService --------------------------------------
+	var ctx: Dictionary = {}
+	ctx["occupied_cells"] = _compute_occupied_cells()   # všetky hotové budovy + ConstructionSite
+	ctx["resource_cells"] = _compute_resource_cells()   # pozície resource nodov
+
+	var validation: Dictionary = PlacementService.validate_placement(
+		building_id,
+		footprint,
+		ctx
+	)
+
+	var ghost_info: Dictionary = GhostService.build_ghost_info(
+		building_id,
+		footprint,
+		validation
+	)
+
+	if not bool(ghost_info.get("is_valid", false)):
+		print("[BuildMode] Invalid placement for %s: %s" % [
+			building_id,
+			ghost_info.get("errors", [])
+		])
+		return  # STOP – ani neskúšaj stavať, ani nestrhávaj resource
+
+	# --- 3) Resource cost až po úspešnej validácii ------------------------------
 	var cost: Dictionary = {
 		&"building_materials": EXTRACTOR_COST_BM,
 		&"equipment": EXTRACTOR_COST_EQ,
@@ -252,26 +332,18 @@ func _start_extractor_at_node(node_at_center: ResourceNode) -> void:
 			" have BM=", have_bm, " EQ=", have_eq)
 		return
 
-	# Kam sa spawne ConstructionSite
+	# --- 4) ConstructionSite vytvárame až teraz --------------------------------
 	var construction_root_node: Node = get_node_or_null(construction_root)
 	if construction_root_node == null:
 		push_error("[BuildMode] construction_root not found for extractor")
 		return
 
-	# Footprint podľa EXTRACTOR_GHOST_PX a aktuálnej veľkosti tile
-	var footprint_cells: Vector2i = _extractor_footprint_cells()
-
-	# Snap center zarovnaný na grid -> všetko bude sedieť
-	var snap_center: Vector2 = _grid_center_from_world(node_at_center.global_position)
-	var top_left_cell: Vector2i = _top_left_cell_for_center(snap_center, footprint_cells)
-
-	# Vytvor a nakonfiguruj ConstructionSite
 	var site: Node2D = construction_site_scene.instantiate() as Node2D
 	site.name = "ExtractorSite_%d_%d" % [top_left_cell.x, top_left_cell.y]
 
 	site.set("terrain_grid", terrain_grid)
 	site.set("top_left_cell", top_left_cell)
-	site.set("size_cells", footprint_cells)
+	site.set("size_cells", footprint_size)
 	site.set("cell_px", cell_px)
 	site.set("building_scene", extractor_scene)
 	site.set("buildings_root_path", buildings_root)
@@ -292,12 +364,11 @@ func _start_extractor_at_node(node_at_center: ResourceNode) -> void:
 	node_at_center.has_extractor = true
 
 	print("[BuildMode] Extractor construction started @", top_left_cell,
-		" size=", footprint_cells, " (snap center) node=", node_at_center.node_id)
+		" size=", footprint_size, " (snap center) node=", node_at_center.node_id)
 
 
 # --- Helpery výpočtu veľkostí a pozícií --------------------------------------
 
-## Reálny rozmer jednej dlaždice v pixeloch – odmerané z mapy (fallback na BuildCfg.CELL_PX)
 func _tile_px() -> Vector2:
 	if terrain_grid == null:
 		return Vector2(float(cell_px), float(cell_px))
@@ -320,26 +391,22 @@ func _tile_px() -> Vector2:
 
 	return Vector2(w, h)
 
-## Rohy jednej bunky v WORLD súradniciach (počítané z jej stredu)
 func _cell_corners_world(cell: Vector2i) -> Dictionary:
 	var half := _tile_px() * 0.5
 	var center_local: Vector2 = terrain_grid.map_to_local(cell)
 	var center_world: Vector2 = terrain_grid.to_global(center_local)
 	return { "tl": center_world - half, "br": center_world + half }
 
-## World-centrum presne v strede bunky (pomôcka pre ghosty)
 func _cell_to_world_center(cell: Vector2i) -> Vector2:
 	var p_local: Vector2 = terrain_grid.map_to_local(cell)
 	return terrain_grid.to_global(p_local)
 
-## Grid-zarovnané world-centrum dlaždice, v ktorej leží world bod
 func _grid_center_from_world(world_pos: Vector2) -> Vector2:
 	var local_tm: Vector2 = terrain_grid.to_local(world_pos)
 	var cell: Vector2i = terrain_grid.local_to_map(local_tm)
 	var cell_local_center: Vector2 = terrain_grid.map_to_local(cell)
 	return terrain_grid.to_global(cell_local_center)
 
-## Vypočítaj top-left cell tak, aby stred rektu (footprint) sedel na center_world
 func _top_left_cell_for_center(center_world: Vector2, footprint_cells: Vector2i) -> Vector2i:
 	var t: Vector2 = _tile_px()
 	var foot_px: Vector2 = Vector2(footprint_cells.x * t.x, footprint_cells.y * t.y)
@@ -347,18 +414,18 @@ func _top_left_cell_for_center(center_world: Vector2, footprint_cells: Vector2i)
 	var tl_local_tm: Vector2 = terrain_grid.to_local(top_left_world)
 	return terrain_grid.local_to_map(tl_local_tm)
 
-## extractor footprint v tiles z EXTRACTOR_GHOST_PX a aktuálnej tile veľkosti
 func _extractor_footprint_cells() -> Vector2i:
 	var t: Vector2 = _tile_px()
 	var gx: float = BuildCfg.EXTRACTOR_GHOST_PX.x
 	var gy: float = BuildCfg.EXTRACTOR_GHOST_PX.y
 	var cx: int = int(ceil(gx / max(1.0, t.x)))
 	var cy: int = int(ceil(gy / max(1.0, t.y)))
-	if cx < 1: cx = 1
-	if cy < 1: cy = 1
+	if cx < 1:
+		cx = 1
+	if cy < 1:
+		cy = 1
 	return Vector2i(cx, cy)
 
-## nájdi najbližší voľný ResourceNode v okruhu (px)
 func _find_nearest_free_node(world_pos: Vector2, max_dist_px: float) -> ResourceNode:
 	var best: ResourceNode = null
 	var best_d2: float = max_dist_px * max_dist_px
@@ -378,7 +445,6 @@ func _draw() -> void:
 	if terrain_grid == null:
 		return
 
-	# --- FOUNDATION TOOL (EXTERIOR_COMPLEX) ---
 	if current_tool == Tool.EXTERIOR_COMPLEX:
 		var hc: Dictionary = _cell_corners_world(hover_cell)
 		var tl_tile_world: Vector2 = hc["tl"]
@@ -410,17 +476,14 @@ func _draw() -> void:
 			var tpx: float = float(BuildCfg.FOUNDATION_WALL_THICKNESS) * tsize.x
 			var tpy: float = float(BuildCfg.FOUNDATION_WALL_THICKNESS) * tsize.y
 
-			# top, left, bottom, right ring
 			draw_rect(Rect2(rect.position, Vector2(rect.size.x, tpy)), BuildCfg.GHOST_STROKE, true)
 			draw_rect(Rect2(rect.position, Vector2(tpx, rect.size.y)), BuildCfg.GHOST_STROKE, true)
 			draw_rect(Rect2(Vector2(rect.position.x, rect.end.y - tpy), Vector2(rect.size.x, tpy)), BuildCfg.GHOST_STROKE, true)
 			draw_rect(Rect2(Vector2(rect.end.x - tpx, rect.position.y), Vector2(tpx, rect.size.y)), BuildCfg.GHOST_STROKE, true)
 
-	# --- EXTRACTOR TOOL (EXTERIOR_EXTRACTOR) ---
 	elif current_tool == Tool.EXTERIOR_EXTRACTOR:
 		var ghost_px: Vector2 = BuildCfg.EXTRACTOR_GHOST_PX
 
-		# 1) modré snap hinty na všetkých voľných nodoch (zarovnané na grid)
 		for n in get_tree().get_nodes_in_group("resource_nodes"):
 			if n is ResourceNode and not (n as ResourceNode).has_extractor:
 				var c_world: Vector2 = _grid_center_from_world((n as ResourceNode).global_position)
@@ -429,7 +492,6 @@ func _draw() -> void:
 				draw_rect(rect_hint, BuildCfg.GHOST_HINT_FILL, true)
 				draw_rect(rect_hint, BuildCfg.GHOST_HINT_STROKE, false, 1.3)
 
-		# 2) pod kurzorom – zelený na najbližšom node v dosahu, inak červený
 		var near: ResourceNode = _find_nearest_free_node(get_global_mouse_position(), SNAP_RADIUS_PX)
 		if near != null:
 			var snap_c: Vector2 = _grid_center_from_world(near.global_position)
@@ -446,6 +508,7 @@ func _draw() -> void:
 
 
 # --- Pomocníci vstupu --------------------------------------------------------
+
 func _mouse_cell() -> Vector2i:
 	if terrain_grid == null:
 		push_error("[BuildMode] terrain_grid is null in _mouse_cell()")
@@ -453,3 +516,29 @@ func _mouse_cell() -> Vector2i:
 	var mouse_world: Vector2 = get_global_mouse_position()
 	var mouse_local_tm: Vector2 = terrain_grid.to_local(mouse_world)
 	return terrain_grid.local_to_map(mouse_local_tm)
+
+func _compute_occupied_cells() -> Dictionary:
+	var occupied: Dictionary = {}
+
+	var nodes: Array = get_tree().get_nodes_in_group("buildings")
+	for node in nodes:
+		if node.has_method("get_occupied_cells"):
+			var cells_any: Array = node.get_occupied_cells()
+			for c_any in cells_any:
+				var cell: Vector2i = c_any as Vector2i
+				occupied[cell] = true
+
+	return occupied
+
+func _compute_resource_cells() -> Array[Vector2i]:
+	var res: Array[Vector2i] = []
+	if terrain_grid == null:
+		return res
+
+	for n in get_tree().get_nodes_in_group("resource_nodes"):
+		if n is ResourceNode:
+			var rn := n as ResourceNode
+			var local_tm: Vector2 = terrain_grid.to_local(rn.global_position)
+			var cell: Vector2i = terrain_grid.local_to_map(local_tm)
+			res.append(cell)
+	return res

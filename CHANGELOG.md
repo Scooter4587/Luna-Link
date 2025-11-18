@@ -2,6 +2,38 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.45] – 2025-11-18
+Added
+PlacementService – spoločná služba pre všetky budovy:
+  - výpočet footprintu podľa `BuildingsCfg` (`fixed` a `rect_drag`),
+  - generické validačné pravidlá podľa `placement_rules`:
+    - `FreeArea` – žiadna dlaždica footprintu nesmie byť už obsadená,
+    - `OnResourceNode` – extractor musí zasahovať aspoň jednu resource tile,
+    - `MinClearRadius` – minimálny odstup od iných budov/ConstructionSite (konfigurovaný v `BuildingsCfg`).
+- GhostService (skeleton) – funkcia `build_ghost_info()` prevádza výsledky validácie (`per_cell`) na stav pre ghost (OK/bloknuté) a loguje ich pre debug.
+
+Changed
+ConstructionSite.gd
+ - Site sa pridáva do skupiny `"buildings"` a implementuje `get_occupied_cells()`, takže placement logika vidí aj rozostavané stavby.
+Building.gd
+  - Pridaná metóda `get_occupied_cells()`, vďaka ktorej hotové budovy vstupujú do validačného systému (FreeArea / MinClearRadius).
+BuildMode.gd
+ - Foundation (tool `EXTERIOR_COMPLEX`) pred vytvorením `ConstructionSite` používa `PlacementService.validate_placement()` – pri nevalidnom placemente sa stavba vôbec nespustí.
+ - Extractor (tool `EXTERIOR_EXTRACTOR`) pred spustením stavby overuje:
+   - voľné tiles v okolí resource nodu (`FreeArea`),
+   - že footprint zasahuje resource node (`OnResourceNode`),
+   - že je dodržaný minimálny odstup od iných budov (`MinClearRadius`).
+
+Fixed
+Foundation sa už nedá postaviť cez existujúci extractor ani iné budovy/ConstructionSite – blokuje to pravidlo `FreeArea`.
+Extractor sa nedá postaviť na resource node, ak by jeho footprint kolidoval s foundation alebo bol príliš blízko iných stavieb (porušil by `min_clear_radius`).
+`bm_extractor` má v `BuildingsCfg` nastavený `min_clear_radius = 6`, takže extractory sa nemôžu “nalepiť” na základňu.
+Opravené integer division warningy v `_rule_min_clear_radius()` v `PlacementService.gd`.
+
+Notes
+Pokračuje Cleanup a generalizuje Build Systém
+
+
 [0.0.44] – 2025-11-18
 Added
 GhostService: prepojenie výstupu z PlacementService.validate_placement() na ghost logiku (per-tile VALID/BLOCKED, textové chyby).

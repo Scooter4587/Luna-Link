@@ -6,11 +6,15 @@ class_name BMExtractor
 @export var production_multiplier: float = 1.0
 @export var debug_logs: bool = false
 
+@export var size_cells: Vector2i = Vector2i(2, 2)  # alebo nechaj default, ConstructionSite to prepíše
+var top_left_cell: Vector2i = Vector2i.ZERO
+
 var build_cfg: Dictionary = BuildingsCfg.get_building("bm_extractor")
 var linked_node: ResourceNode = null
 var _clock: Node = null
 
 func _ready() -> void:
+	add_to_group("buildings")
 	print("BMExtractor build cfg:", build_cfg)
 	# 1) skús nájsť hneď (malo by stačiť po fixe v ConstructionSite)
 	linked_node = _find_nearest_node()
@@ -90,3 +94,13 @@ func _find_nearest_node() -> ResourceNode:
 				best_d2 = d2
 				best = n
 	return best
+
+func get_occupied_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	var tl: Vector2i = top_left_cell
+
+	for y: int in size_cells.y:
+		for x: int in size_cells.x:
+			cells.append(Vector2i(tl.x + x, tl.y + y))
+
+	return cells

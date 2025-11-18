@@ -8,12 +8,18 @@ extends Node2D
 @export var interior_scene: PackedScene = null      # Inside_Build.tscn (môže byť null)
 @export var cell_px: int = 128                      # len pre konzistenciu gridu
 
+## Pozícia ľavého-horného tile building-u v grid súradniciach.
+## ConstructionSite by mal pri spawne budovy nastaviť túto hodnotu cez set("top_left_cell", ...)
+var top_left_cell: Vector2i = Vector2i.ZERO
+
 var interior: Node2D = null
 
 func set_interior_scene(p: PackedScene) -> void:
 	interior_scene = p
 
 func _ready() -> void:
+	add_to_group("buildings")
+
 	# drž konzistenciu s BuildCfg
 	if cell_px != BuildCfg.CELL_PX:
 		cell_px = BuildCfg.CELL_PX
@@ -61,3 +67,15 @@ func _spawn_interior() -> void:
 	for y in size_cells.y:
 		walls.set_cell(Vector2i(0, y),                wall_src, BuildCfg.FOUNDATION_WALL_ATLAS, 0)
 		walls.set_cell(Vector2i(size_cells.x - 1, y), wall_src, BuildCfg.FOUNDATION_WALL_ATLAS, 0)
+
+func get_occupied_cells() -> Array[Vector2i]:
+	## Vráti všetky grid bunky, ktoré táto budova zaberá.
+	## Používame size_cells (šírka/výška v tiles) + top_left_cell (ľavý-horný tile).
+	var cells: Array[Vector2i] = []
+
+	var tl: Vector2i = top_left_cell
+	for y: int in size_cells.y:
+		for x: int in size_cells.x:
+			cells.append(Vector2i(tl.x + x, tl.y + y))
+
+	return cells

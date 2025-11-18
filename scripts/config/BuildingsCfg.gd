@@ -16,6 +16,7 @@ class_name BuildingsCfg
 ## - build_time: float             # základný čas výstavby
 ## - cost: Dictionary              # resource_id -> množstvo
 ## - behaviors: Array[Dictionary]  # zoznam behavior modulov (type + config)
+## - min_clear_radius: int         # voliteľné – minimálna vzdialenosť od iných budov (v tiles)
 
 const BUILDINGS: Dictionary = {
     "foundation_basic": {
@@ -51,7 +52,9 @@ const BUILDINGS: Dictionary = {
             "FreeArea",
             "OnResourceNode",
             "NoExtractorPresent",
+            "MinClearRadius",
         ],
+        "min_clear_radius": 6,
         "time_mode": "game_hours",
         "build_time": 4.0,  # placeholder
         "cost": {
