@@ -39,6 +39,7 @@ enum BuildTimeMode { REALTIME_SECONDS = 0, GAME_MINUTES_FIXED = 1, GAME_HOURS_FI
 @export var use_center_override: bool = false
 @export var spawn_center_override_world: Vector2 = Vector2.ZERO
 
+@export var visual_px_size: Vector2 = Vector2.ZERO
 
 # --- Interné runtime premenné ------------------------------------------------
 
@@ -207,6 +208,10 @@ func _finalize_build() -> void:
 	b2d.set("top_left_cell", top_left_cell)
 	if inside_build_scene != null and _has_property(b2d, &"interior_scene"):
 		b2d.set("interior_scene", inside_build_scene)
+	if _has_property(b2d, &"terrain_grid"):
+		b2d.set("terrain_grid", terrain_grid)
+	if _has_property(b2d, &"top_left_cell"):
+		b2d.set("top_left_cell", top_left_cell)
 
 	# Najprv nastav pozíciu (v lokálnych coords parenta), až potom add_child
 	var local_pos: Vector2 = parent2d.to_local(spawn_world)
@@ -230,48 +235,59 @@ func _draw() -> void:
 			HORIZONTAL_ALIGNMENT_LEFT, -1.0, 18, Color(1,1,1,1))
 		return
 
-	# prepočet rohov do lokálnych súradníc ConstructionSite
-	var tl_c: Vector2i = top_left_cell
-	var br_c: Vector2i = top_left_cell + size_cells - Vector2i(1, 1)
+	var build_rect: Rect2
+	var label_anchor: Vector2
 
-	var tsize: Vector2 = _tile_px()
-	var half: Vector2 = tsize * 0.5
+	# 1) Špeciálny vizuál (napr. extractor) – veľkosť v pixeloch
+	if visual_px_size != Vector2.ZERO and use_center_override:
+		var center_world: Vector2 = spawn_center_override_world
+		var half_visual: Vector2 = visual_px_size * 0.5
+		var tl_world: Vector2 = center_world - half_visual
+		var tl_local: Vector2 = to_local(tl_world)
 
-	# centrá rohových buniek
-	var tl_world_center: Vector2 = terrain_grid.to_global(terrain_grid.map_to_local(tl_c))
-	var br_world_center: Vector2 = terrain_grid.to_global(terrain_grid.map_to_local(br_c))
+		build_rect = Rect2(tl_local, visual_px_size)
+		label_anchor = tl_local
+	else:
+		# 2) Pôvodný tile-based rect (foundation a normálne budovy)
+		var tl_c: Vector2i = top_left_cell
+		var br_c: Vector2i = top_left_cell + size_cells - Vector2i(1, 1)
 
-	# rohy výberu
-	var tl_world: Vector2 = tl_world_center - half
-	var br_world: Vector2 = br_world_center + half
+		var tsize: Vector2 = _tile_px()
+		var half: Vector2 = tsize * 0.5
 
-	var tl_local: Vector2 = to_local(tl_world)
-	var br_local: Vector2 = to_local(br_world)
-	var build_rect: Rect2 = Rect2(tl_local, br_local - tl_local)
+		var tl_world_center: Vector2 = terrain_grid.to_global(terrain_grid.map_to_local(tl_c))
+		var br_world_center: Vector2 = terrain_grid.to_global(terrain_grid.map_to_local(br_c))
 
-	# progres 0..1 + texty
+		var tl_world: Vector2 = tl_world_center - half
+		var br_world: Vector2 = br_world_center + half
+
+		var tl_local2: Vector2 = to_local(tl_world)
+		var br_local2: Vector2 = to_local(br_world)
+
+		build_rect = Rect2(tl_local2, br_local2 - tl_local2)
+		label_anchor = tl_local2
+
+	# --- Progres 0..1 + texty -------------------------------------------------
 	var p: float = 1.0 - clamp(build_time_left / max(0.0001, build_time_total), 0.0, 1.0)
 	var eta: float = max(0.0, build_time_left)
 
-	# výrazný overlay (cyan) + hrubý biely okraj
 	draw_rect(build_rect, Color(0.2, 0.8, 1.0, 0.35), true)
 	draw_rect(build_rect, Color(1, 1, 1, 1.0), false, 3.0)
 
-	# jednotka podľa time_mode
 	var unit: String = "s"
 	if time_mode == BuildTimeMode.GAME_MINUTES_FIXED:
 		unit = "min"
 	elif time_mode == BuildTimeMode.GAME_HOURS_FIXED:
 		unit = "h"
 
-	# percentá + ETA (1 desatinné miesto)
 	var font: Font = ThemeDB.fallback_font
 	var percent: int = int(round(p * 100.0))
 	var eta_1dec: float = round(eta * 10.0) / 10.0
 	var label: String = str(percent) + "%  (" + str(eta_1dec) + unit + ")"
 
-	draw_string(font, tl_local + Vector2(10, 28), label,
+	draw_string(font, label_anchor + Vector2(10, 28), label,
 		HORIZONTAL_ALIGNMENT_LEFT, -1.0, 24, Color(1,1,1,1))
+
 
 # --- Pomocníci ----------------------------------------------------------------
 

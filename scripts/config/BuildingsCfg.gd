@@ -29,7 +29,9 @@ const BUILDINGS: Dictionary = {
         "pivot_cell": Vector2i(0, 0),
         "placement_rules": [
             "FreeArea",
+            "MinClearRadius",
         ],
+        "min_clear_radius": 6,
         "time_mode": "game_hours",
         "build_time": 1.0,
         "cost": {

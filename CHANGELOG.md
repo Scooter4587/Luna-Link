@@ -2,6 +2,30 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.46] – 2025-11-18
+Added
+Prekopaný EXTRACTOR ghost – číta `size_cells` z `BuildingsCfg` a `EXTRACTOR_GHOST_PX` z `BuildCfg`, kreslí veľký ghost v skutočnej veľkosti sprite-u, centrovaný na ResourceNode.
+Foundation ghost teraz používa per-tile informácie z `GhostService` (`per_cell_state`) a každý tile má vlastný fill + tenký obrys gridu.
+Obnovený múr/prstenec pre foundation – okrajový rámik sa kreslí hrubšou čiarou, aby bolo jasne vidieť hranicu budúcej základne.
+-`BuildMode` pre extractor úplne prešlo na PlacementService + GhostService:
+- footprint sa počíta z `BuildingsCfg` (`size_cells`, `pivot_cell`),
+- validácia ide cez `FreeArea`, `OnResourceNode`, `MinClearRadius`,
+- resource cost sa odpočítava až po úspešnej validácii.
+
+Changed
+ConstructionSite: `size_cells` a `get_occupied_cells()` teraz blokujú reálnu plochu stavby (aj pre extractor site), takže foundation ani iné stavby už neprelezú cez rozostavaný extractor.
+Occupied area extractora: finálna budova aj jej ConstructionSite používajú rovnaký footprint, takže extractor naozaj blokuje oblasť zodpovedajúcu jeho sprite-u (nie len 2×2).
+Opravené varovania: 
+- integer division v `PlacementService._rule_min_clear_radius` (použité pomocné `center_x`, `center_y`),
+- odstránené/shadow fixy pre lokálne premené (`has_node`, `ghost_px`, `center_world`, `tl_world`).
+
+Notes
+`GhostService.build_ghost_info()` je teraz jediný zdroj pravdy pre:
+- `is_valid`,
+- per-tile stav (`CellState.VALID / BLOCKED`),
+- zoznam chýb pre debug / UI.
+`BuildMode._draw()` má spoločnú pomocnú funkciu `_draw_ghost_tile()` pre kreslenie tile ghostov (foundation, budúce budovy).
+
 [0.0.45] – 2025-11-18
 Added
 PlacementService – spoločná služba pre všetky budovy:

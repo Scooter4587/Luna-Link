@@ -8,9 +8,11 @@ extends Node2D
 @export var interior_scene: PackedScene = null      # Inside_Build.tscn (môže byť null)
 @export var cell_px: int = 128                      # len pre konzistenciu gridu
 
+@export var terrain_grid: TileMapLayer        # doplnok
+@export var top_left_cell: Vector2i = Vector2i.ZERO  # doplnok
+
 ## Pozícia ľavého-horného tile building-u v grid súradniciach.
 ## ConstructionSite by mal pri spawne budovy nastaviť túto hodnotu cez set("top_left_cell", ...)
-var top_left_cell: Vector2i = Vector2i.ZERO
 
 var interior: Node2D = null
 
@@ -69,13 +71,11 @@ func _spawn_interior() -> void:
 		walls.set_cell(Vector2i(size_cells.x - 1, y), wall_src, BuildCfg.FOUNDATION_WALL_ATLAS, 0)
 
 func get_occupied_cells() -> Array[Vector2i]:
-	## Vráti všetky grid bunky, ktoré táto budova zaberá.
-	## Používame size_cells (šírka/výška v tiles) + top_left_cell (ľavý-horný tile).
 	var cells: Array[Vector2i] = []
-
 	var tl: Vector2i = top_left_cell
-	for y: int in size_cells.y:
-		for x: int in size_cells.x:
+
+	for y in size_cells.y:
+		for x in size_cells.x:
 			cells.append(Vector2i(tl.x + x, tl.y + y))
 
 	return cells

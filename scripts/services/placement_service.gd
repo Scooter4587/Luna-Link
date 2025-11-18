@@ -239,55 +239,36 @@ static func _rule_min_clear_radius(
 
     var radius: int = int(cfg.get("min_clear_radius", 0))
     if radius <= 0:
-        return result  # pre väčšinu budov sa nič nedeje
+        return result  # pre väčšinu budov nič nerobíme
 
     var occupied: Dictionary = ctx.get("occupied_cells", {})
     if occupied.is_empty():
         return result
 
-    # Zistíme bounding box footprintu (kvôli stredu)
-    var minx :=  999999
-    var miny :=  999999
-    var maxx := -999999
-    var maxy := -999999
-    for c_any in footprint:
-        var c: Vector2i = c_any as Vector2i
-        if c.x < minx: minx = c.x
-        if c.y < miny: miny = c.y
-        if c.x > maxx: maxx = c.x
-        if c.y > maxy: maxy = c.y
-
-    # Stred bounding boxu footprintu
-    var center_x: int = int((minx + maxx) / 2.0)
-    var center_y: int = int((miny + maxy) / 2.0)
-    var center: Vector2i = Vector2i(center_x, center_y)
-
     var has_violation := false
 
-    # prejdeme všetky bunky v štvorci okolo stredu s Chebyshev vzdialenosťou radius
-    for y in range(center.y - radius, center.y + radius + 1):
-        for x in range(center.x - radius, center.x + radius + 1):
-            var cell := Vector2i(x, y)
-
-            # vlastný footprint neberieme ako konflikt
-            var is_own := false
-            for f_any in footprint:
-                var f: Vector2i = f_any as Vector2i
-                if f == cell:
-                    is_own = true
-                    break
-            if is_own:
-                continue
-
-            if occupied.has(cell):
+    # Chebyshev vzdialenosť: max(|dx|, |dy|) <= radius
+    for f_any in footprint:
+        var f: Vector2i = f_any as Vector2i
+        for occ_key in occupied.keys():
+            var oc: Vector2i = occ_key as Vector2i
+            var dx: int = abs(f.x - oc.x)
+            var dy: int = abs(f.y - oc.y)
+            if max(dx, dy) <= radius:
                 has_violation = true
-                result.blocked_cells.append(cell)
+                break
+        if has_violation:
+            break
 
     if has_violation:
-        result.is_valid = false
-        result.error = "MinClearRadius: buildings too close (radius=%d)" % radius
-        # pre vizuál môžeme ešte označiť aspoň 1 tile footprintu ako blokovaný
-        if not footprint.is_empty():
-            result.blocked_cells.append(footprint[0])
+        result["is_valid"] = false
+        result["error"] = "MinClearRadius: buildings too close (radius=%d)" % radius
+
+        # označíme CELÝ footprint novej budovy ako bloknutý,
+        # aby ghost nebol červený len v jednom tile
+        var blocked: Array[Vector2i] = []
+        for f_any in footprint:
+            blocked.append(f_any as Vector2i)
+        result["blocked_cells"] = blocked
 
     return result
