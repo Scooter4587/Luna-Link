@@ -348,6 +348,8 @@ func _start_extractor_at_node(node_at_center: ResourceNode) -> void:
 	site.set("building_scene", extractor_scene)
 	site.set("buildings_root_path", buildings_root)
 	site.set("z_index", 500)
+	# prepojíme ConstructionSite s konkrétnym ResourceNode
+	site.set("linked_resource_node_path", node_at_center.get_path())
 
 	# 3 herné hodiny (v minútach) podľa GameClock
 	site.set("time_mode", CS_TIME_MODE_GAME_MINUTES)
@@ -504,9 +506,9 @@ func _draw() -> void:
 		var footprint: Array = data.get("footprint", [])
 		var ghost_info: Dictionary = data.get("ghost_info", {})
 		var per_cell_state: Dictionary = ghost_info.get("per_cell_state", {})
-		var has_snap_node: bool = bool(data.get("has_node", false))  # premenované z has_node
+		var has_snap_node: bool = bool(data.get("has_node", false))  # renamed, nech nie je konflikt s Node.has_node()
 
-		# Ak nemáme footprint (žiadny node v dosahu), nakreslíme len fallback ghost pod kurzorom
+		# Ak nemáme footprint, nakreslíme len malý červený ghost pod kurzorom
 		if footprint.is_empty():
 			var ghost_px_fb: Vector2 = BuildCfg.EXTRACTOR_GHOST_PX
 			var center_world_fb: Vector2 = _grid_center_from_world(get_global_mouse_position())
@@ -525,7 +527,7 @@ func _draw() -> void:
 				is_valid = false
 				break
 
-		# Bounding box footprintu
+		# Bounding box footprintu v grid coords
 		var minx :=  999999
 		var miny :=  999999
 		var maxx := -999999
@@ -537,23 +539,23 @@ func _draw() -> void:
 			if c.x > maxx: maxx = c.x
 			if c.y > maxy: maxy = c.y
 
-		# stred cez float /2.0 -> int, aby nebolo INTEGER_DIVISION warning
-		var center_x: int = int(round((minx + maxx) / 2.0))
-		var center_y: int = int(round((miny + maxy) / 2.0))
+		# Stred vypočítame cez float → int, nech nemáme warning o integer division
+		var center_x: int = int(float(minx + maxx) * 0.5)
+		var center_y: int = int(float(miny + maxy) * 0.5)
 		var center_cell := Vector2i(center_x, center_y)
 		var center_world: Vector2 = _cell_to_world_center(center_cell)
 
-		# veľký vizuálny ghost – rovnaký ako sprite
+		# Veľký ghost podľa BuildCfg.EXTRACTOR_GHOST_PX
 		var ghost_px: Vector2 = BuildCfg.EXTRACTOR_GHOST_PX
 		var tl_world: Vector2 = center_world - ghost_px * 0.5
 		var rect: Rect2 = Rect2(to_local(tl_world), ghost_px)
 
 		if has_snap_node and is_valid:
-			# valid placement na node → zelený ghost
+			# zelený ghost (valid + snapnutý na node)
 			draw_rect(rect, Color(0.1, 0.9, 0.3, 0.15), true)
 			draw_rect(rect, Color(0.1, 1.0, 0.1, 0.95), false, 1.5)
 		else:
-			# inak červený
+			# červený ghost (buď mimo node, alebo blokovaný MinClearRadius / kolíziou)
 			draw_rect(rect, Color(1, 0, 0, 0.12), true)
 			draw_rect(rect, Color(1, 0, 0, 0.9), false, 1.5)
 

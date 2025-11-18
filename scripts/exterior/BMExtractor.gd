@@ -4,10 +4,13 @@ class_name BMExtractor
 
 @export var auto_find_radius: float = 400.0
 @export var production_multiplier: float = 1.0
-@export var debug_logs: bool = false
+@export var debug_logs: bool = true
 
 @export var size_cells: Vector2i = Vector2i(2, 2)  # alebo nechaj default, ConstructionSite to prepíše
 var top_left_cell: Vector2i = Vector2i.ZERO
+
+@export var linked_resource_node_path: NodePath = NodePath("")  # nastaví ConstructionSite
+var linked_resource_node: ResourceNode = null
 
 var build_cfg: Dictionary = BuildingsCfg.get_building("bm_extractor")
 var linked_node: ResourceNode = null
@@ -16,15 +19,28 @@ var _clock: Node = null
 func _ready() -> void:
 	add_to_group("buildings")
 	print("BMExtractor build cfg:", build_cfg)
-	# 1) skús nájsť hneď (malo by stačiť po fixe v ConstructionSite)
-	linked_node = _find_nearest_node()
+
+	# 1) Pokus o priamy link z ConstructionSite cez NodePath
+	if linked_resource_node_path != NodePath(""):
+		var rn := get_tree().get_root().get_node_or_null(linked_resource_node_path)
+		if rn is ResourceNode:
+			linked_node = rn
+		else:
+			push_warning("[BMExtractor] linked_resource_node_path neukazuje na ResourceNode: %s" % str(linked_resource_node_path))
+
+	# 2) Ak stále nič, fallback na pôvodný nearest-node mechanizmus
 	if linked_node == null:
-		# ak ešte nestojíme na finálnej pozícii, daj tomu 1 frame a skús znova
+		linked_node = _find_nearest_node()
+
+	# 3) Ak ani potom nemáme node, skúsime to o frame neskôr
+	if linked_node == null:
 		call_deferred("_late_link_attempt")
-	else:
-		_connect_clock()
-		if debug_logs:
-			_print_link_ok()
+		return
+
+	# 4) Máme platný ResourceNode → môžeme napojiť clock a log
+	_connect_clock()
+	if debug_logs:
+		_print_link_ok()
 
 func _late_link_attempt() -> void:
 	# tento behne po pridaní do stromu + po nastavení pozície
@@ -39,10 +55,18 @@ func _late_link_attempt() -> void:
 func _exit_tree() -> void:
 	_disconnect_clock()
 
+
 func _print_link_ok() -> void:
-	var res_id: StringName = StringName(linked_node.get_resource_id())
-	print("[BMExtractor] Linked to node id=", linked_node.node_id,
-		" res=", res_id, " out/h=", linked_node.get_output_per_hour() * production_multiplier)
+	if linked_node == null:
+		print("[BMExtractor] link FAILED (linked_node == null)")
+		return
+
+	var rn := linked_node
+	print("[BMExtractor] Linked to ResourceNode id=%s name=%s path=%s" % [
+		rn.node_id,
+		rn.name,
+		rn.get_path()
+	])
 
 func _connect_clock() -> void:
 	if linked_node == null:

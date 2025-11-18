@@ -40,6 +40,7 @@ enum BuildTimeMode { REALTIME_SECONDS = 0, GAME_MINUTES_FIXED = 1, GAME_HOURS_FI
 @export var spawn_center_override_world: Vector2 = Vector2.ZERO
 
 @export var visual_px_size: Vector2 = Vector2.ZERO
+@export var linked_resource_node_path: NodePath = NodePath("")
 
 # --- Interné runtime premenné ------------------------------------------------
 
@@ -217,6 +218,20 @@ func _finalize_build() -> void:
 	var local_pos: Vector2 = parent2d.to_local(spawn_world)
 	b2d.position = local_pos
 	parent2d.add_child(b2d)
+	
+	# Prepoj extractor ↔ ResourceNode (ak je nastavená cesta)
+	if linked_resource_node_path != NodePath(""):
+		# Pošli link budove, ak má takú property
+		if _has_property(b2d, &"linked_resource_node_path"):
+			b2d.set("linked_resource_node_path", linked_resource_node_path)
+
+		# Skús nájsť ResourceNode a dať mu spätný link na extractor
+		var rn: Node = get_tree().get_root().get_node_or_null(linked_resource_node_path)
+		if rn != null:
+			if _has_property(rn, &"extractor_path"):
+				rn.set("extractor_path", b2d.get_path())
+			if _has_property(rn, &"has_extractor"):
+				rn.set("has_extractor", true)
 
 	_disconnect_clock()
 	queue_free()

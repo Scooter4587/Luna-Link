@@ -5,6 +5,7 @@ class_name ResourceNode
 # aký má output za hodinu pri jednom extraktore.
 
 @export var node_id: StringName = &"regolith_small"
+@export var extractor_path: NodePath = NodePath("")
 
 var _def: Dictionary = {}
 var depleted: bool = false        # do budúcna, zatiaľ len flag

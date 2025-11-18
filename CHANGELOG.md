@@ -2,6 +2,17 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.47] – 2025-11-18
+Added
+BMExtractor: pri `_ready()` sa automaticky pokúsi nájsť najbližší `ResourceNode` pod sebou a uloží ho do premennej `linked_node`.
+Ak sa node nepodarí nájsť hneď (kvôli spawn order z `ConstructionSite`), extractor použije deferred `_late_link_attempt()` – linkovanie sa zopakuje po jednom frame a až potom sa pripojí na `GameClock`.
+Po úspešnom linku sa do konzoly vypisuje debug správa  `[BMExtractor] Linked to ResourceNode id=... name=... path=...`  pre jednoduchú kontrolu a ladenie (alebo cez Remote inspector).
+
+Fixed
+Odstránený edge-case, keď extractor po dokončení stavby nemusel mať korektne naviazaný `ResourceNode`, ale aj tak počúval `GameClock` (potenciál pre “mŕtve” alebo nesprávne extractory pri ďalšom refaktore).
+Stabilnejšie napojenie na `GameClock` – extractor sa pripája až po úspešnom nájdení `linked_node`, takže produkcia je vždy viazaná na konkrétny resource node.
+
+
 [0.0.46] – 2025-11-18
 Added
 Prekopaný EXTRACTOR ghost – číta `size_cells` z `BuildingsCfg` a `EXTRACTOR_GHOST_PX` z `BuildCfg`, kreslí veľký ghost v skutočnej veľkosti sprite-u, centrovaný na ResourceNode.
