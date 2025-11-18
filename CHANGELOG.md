@@ -2,6 +2,11 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.43] – 2025-11-18
+Added
+Valide placement - get_footprint a validate_placement mechanika nahodená a otestovaná
+
+
 [0.0.42] – 2025-11-18
 Added
 services folder - bude slúžiť čisto pre logiku a opakovateľné skripty. 
