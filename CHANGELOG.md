@@ -3,33 +3,25 @@ Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[ver
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
 [0.0.5] – 2025-11-19
+
 Added
-`BuildCfg.gd` ako centrálne nastavenia pre build systém (veľkosť tile, farby ghostu, extractor ghost veľkosť, čas na tile pre foundation).
-`BuildingsCfg.gd` ako single source of truth pre všetky budovy (`foundation_basic`, `bm_extractor`, `solar_panel`, `power_cable`, `room_basic`) vrátane footprint_type, anchor_type, placement_rules, time_mode, cost a behavior slotov.
-`TimeCfg.gd` a autoload `GameClock.gd` ako jednotný herný čas (pause / x1 / x2 / x4) so signálmi `tick_hours`, `hour_changed`, `minute_changed` a helpermi na formátovanie dátumu a času.
-`ResourceCfg.gd`, `GameState.gd` a napojenie do `TopBarUI.gd` ako základný globálny resource systém (building_materials, equipment, helium, water, food, happiness, stress, innovations, earth_energy) so signal-based update a náhľadom hourly delta pre Building Materials.
-`ResourceNodeCfg.gd` a `ResourceNode.gd` ako dátové definície a runtime pre povrchové resource nody (`regolith_small` → building_materials) s outputom za hodinu.
-Services vrstva: `PlacementService.gd`, `GhostService.gd`, `ConstructionService.gd` pre výpočet footprintu, validáciu placementu (`FreeArea`, `OnResourceNode`, `MinClearRadius`), tvorbu ghost dát a jednotné spúšťanie `ConstructionSite` pre všetky typy budov.
-`BMExtractor.gd` ako hourly production behavior napojený na `GameClock.hour_changed`, ktorý číta z pripojeného `ResourceNode` a pridáva produkciu do `State`.
-`Building.gd` a `InsideBuild.gd` pre dátovo riadené interiéry: generovanie podlahy a obvodových múrov podľa `BuildCfg` pre ľubovoľnú veľkosť foundation.
-`CameraController.gd` pre WASD pan a zoom kolieskom s rýchlosťou panu škálovanou podľa zoomu.
+Nový dátový základ: `BuildCfg.gd`, `BuildingsCfg.gd`, `TimeCfg.gd` + autoload `GameClock.gd`, `ResourceCfg.gd`, `GameState.gd`, `ResourceNodeCfg.gd` a `ResourceNode.gd` pre jednotný čas, zdroje a povrchové nody.
+Services vrstva: `PlacementService.gd`, `GhostService.gd`, `ConstructionService.gd` pre výpočet footprintu, validáciu (FreeArea, OnResourceNode, MinClearRadius) a spúšťanie ConstructionSite.
+`BMExtractor.gd` napojený na `GameClock.hour_changed`, ktorý číta z `ResourceNode` a pridáva hodinovú produkciu do State.
+`Building.gd` + `Inside_Build.gd` pre dátovo riadené generovanie interiérov (podlaha + múry) podľa BuildCfg.
+CameraController.gd pre WASD pan a zoom kolieskom.
 
 Changed
-`BuildMode.gd` používa `BuildingsCfg`, `PlacementService`, `GhostService` a `ConstructionService` pre foundation (rect-drag) aj pre extractor (snap na `ResourceNode`), vrátane kontroly obsadených buniek, resource buniek a minimálnej vzdialenosti od iných budov podľa configu.
-`ConstructionSite.gd` je jednotný build pipeline pre foundation aj fixné budovy: spoločný výpočet build_time podľa `time_mode`, kreslenie progressu, integrácia s `GameClock` (minúty/hodiny) a konzistentný spawn výslednej budovy.
-Extractor build prechádza cez rovnaký `ConstructionService` ako foundation, míňa zdroje cez `State.try_spend` a označí príslušný `ResourceNode` (`has_extractor`, `extractor_path`), aby sa nedal postaviť druhý krát na tom istom node.
-`TopBarUI.gd` je zosúladený s `GameClock` a `TimeCfg` ako jediným zdrojom času; počúva `State.resource_changed` a `Clock.minute_changed` a zobrazuje aj hodinový delta indikátor pre `building_materials`.
-`BuildUI.gd` dostal `class_name BuildUI`, čistejšiu inicializáciu ButtonGroup a funguje čisto ako emitter signálu `tool_requested` pre `BuildMode`.
+`BuildMode.gd` používa `BuildingsCfg` + services (PlacementService, GhostService, ConstructionService) pre foundation (rect-drag) aj extractor (snap na ResourceNode), vrátane kontroly obsadených tiles a clear radius.
+`ConstructionSite.gd` je jednotný build pipeline pre foundation aj fixné budovy: výpočet času podľa time_mode, napojenie na GameClock (minúty/hodiny), kreslenie progresu a konzistentný spawn budov.
+`TopBarUI.gd` počúva `State.resource_changed` a `Clock.minute_changed`, zobrazuje zdroje z `ResourceCfg` a pri building_materials aj hodinový delta indikátor.
+`BuildUI.gd` má čistejšiu ButtonGroup a funguje iba ako emitér signálu `tool_requested` pre `BuildMode`.
 
 Fixed
-Foundation placement správne bráni prekrývaniu s existujúcimi budovami a construction site-mi cez pravidlo `FreeArea` a zvýrazňuje neplatné tiles v ghost náhľade.
-Extractor placement zlyhá, keď nie je nad resource nodom alebo keď poruší minimálny odstup od existujúcich budov, a používa konzistentné zarovnanie na grid okolo snap centra.
-Construction site sa po dokončení korektne odpájajú od signálov `GameClock` a pri chýbajúcom root node `Buildings` logujú jednu zrozumiteľnú chybu namiesto spamovania.
-`BMExtractor.gd` a `ResourceNode.gd` validujú konfiguráciu už v `_ready` a pri chýbajúcej definícii vypíšu jasné varovanie namiesto tichého správania s prázdnymi dátami.
-
-Notes
-Build systém overhaul je týmto dokončení a zosúladení.
-Pokračujeme v pridávaní základných budov pre exteriér.
+Foundation placement už neprekryje existujúce budovy a construction site-y a zvýrazní neplatné tiles v ghoste.
+Extractor placement zlyhá, keď nie je nad resource nodom alebo poruší clear radius, a drží konzistentné zarovnanie na grid okolo snap centra.
+Construction site sa po dokončení korektne odpájajú od `GameClock` a pri chýbajúcom root node `Buildings` logujú jednu jasnú chybu namiesto spamu.
+`BMExtractor.gd` a `ResourceNode.gd` validujú konfiguráciu už v `_ready` a pri chýbajúcej definícii vypíšu varovanie namiesto tichého správania.
 
 [0.0.48] – 2025-11-19
 Added
