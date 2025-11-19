@@ -1,12 +1,29 @@
 extends Node
 class_name GhostService
-
-## GhostService:
-## - Prepojí výsledok validate_placement() s tým, čo bude ghost potrebovať.
-## - Z footprintu + validation spraví prehľad:
-##     - či je placement celkovo validný
-##     - ktoré bunky sú OK / bloknuté
-##     - aké chyby nastali (texty pre UI/debug)
+## GhostService
+## Pomocná služba pre build ghosty.
+##
+## ÚLOHA:
+## - vezme výstup z PlacementService.validate_placement()
+## - z `footprint` + `validation` vyrobí prehľad pre UI/ghost:
+##     - celková validitaplacementu
+##     - per-tile stav (OK / BLOCKED)
+##     - zoznam chýb (texty pre debug / UI)
+##
+## OČAKÁVANÝ VSTUP (validation):
+## {
+##   "is_valid": bool,
+##   "per_cell": Dictionary(Vector2i -> bool),
+##   "errors": Array[String],
+## }
+##
+## VÝSTUP:
+## {
+##   "building_id": String,
+##   "is_valid": bool,
+##   "per_cell_state": Dictionary(Vector2i -> int), # CellState.VALID/BLOCKED
+##   "errors": Array[String],
+## }
 
 enum CellState {
 	VALID = 0,
@@ -18,18 +35,21 @@ static func build_ghost_info(
 	footprint: Array[Vector2i],
 	validation: Dictionary
 ) -> Dictionary:
-	var info: Dictionary = {}
+	var info: Dictionary = {
+		"building_id": building_id,
+		"is_valid": true,
+		"per_cell_state": {},
+		"errors": [],
+	}
 
-	info["building_id"] = building_id
-
-	var is_valid_var: Variant = validation.get("is_valid", true)
-	var is_valid: bool = bool(is_valid_var)
+	# 1) Celková validita
+	var is_valid: bool = bool(validation.get("is_valid", true))
 	info["is_valid"] = is_valid
 
-	var per_cell_var: Variant = validation.get("per_cell", {})
-	var per_cell_validation: Dictionary = per_cell_var as Dictionary
-
+	# 2) Per-tile stav (VALID/BLOCKED) podľa validation.per_cell
+	var per_cell_validation: Dictionary = validation.get("per_cell", {}) as Dictionary
 	var per_cell_state: Dictionary = {}
+
 	for cell_any in footprint:
 		var cell: Vector2i = cell_any as Vector2i
 		var ok: bool = true
@@ -39,11 +59,11 @@ static func build_ghost_info(
 
 	info["per_cell_state"] = per_cell_state
 
-	var errors_var: Variant = validation.get("errors", [])
-	var errors_any: Array = errors_var as Array
+	# 3) Errors → Array[String]
 	var errors: Array[String] = []
+	var errors_any: Array = validation.get("errors", []) as Array
 	for e_any in errors_any:
-		errors.append(e_any as String)
+		errors.append(str(e_any))
 
 	info["errors"] = errors
 

@@ -1,18 +1,14 @@
 extends Node2D
 ## Build mód: výber nástroja z UI, ťahanie obdĺžnika a vytvorenie ConstructionSite.
-## Foundation beží na GAME_HOURS; Extractor beží na GAME_MINUTES a snapne sa na tile ResourceNode.
+## Foundation/Extractor:
+## - footprint + validáciu rieši PlacementService
+## - cost + build_time čítame z BuildingsCfg
+## - ConstructionSite spúšťame cez ConstructionServiceScript
 
 enum Tool { NONE, EXTERIOR_COMPLEX, EXTERIOR_EXTRACTOR }
 
-const PlacementServiceScript: GDScript = preload("res://scripts/services/placement_service.gd")
-const GhostServiceScript: GDScript = preload("res://scripts/services/ghost_service.gd")
-
-const FOUNDATION_COST_PER_TILE_BM: float = 5.0
-const EXTRACTOR_COST_BM: float = 100.0
-const EXTRACTOR_COST_EQ: float = 20.0
-const EXTRACTOR_BUILD_MINUTES: int = 3 * 60            # 3 herné hodiny (v minútach)
-const CS_TIME_MODE_GAME_MINUTES := 1                   # ConstructionSite.BuildTimeMode.GAME_MINUTES_FIXED
 const SNAP_RADIUS_PX: float = 96.0                     # dosah pre snap na ResourceNode
+const ConstructionServiceScript: GDScript = preload("res://scripts/services/construction_service.gd")
 
 @export var terrain_grid: TileMapLayer
 @export var buildings_root: NodePath = NodePath("../Buildings")
@@ -32,9 +28,6 @@ var drag_a: Vector2i = Vector2i.ZERO
 var drag_b: Vector2i = Vector2i.ZERO
 var hover_cell: Vector2i = Vector2i.ZERO
 
-const TM_REALTIME      := 0
-const TM_GAME_MINUTES  := 1
-const TM_GAME_HOURS    := 2
 
 func _ready() -> void:
 	set_process_unhandled_input(true)
@@ -71,6 +64,7 @@ func _ready() -> void:
 				print("[BuildMode] Fallback: BtnBuild connected")
 	else:
 		push_warning("[BuildMode] UI/BuildUI not found")
+
 
 ## Reakcia na kliky v spodnej lište – Build=0
 func on_ui_tool_requested(tool_id: int) -> void:
@@ -161,11 +155,11 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 		print("[BuildMode] Ignored: size too small =", size)
 		return
 
-	# --- VALIDÁCIA PLACEMENTU cez PlacementService ---------------------------
 	var building_id: String = "foundation_basic"
 
+	# --- VALIDÁCIA PLACEMENTU cez PlacementService ---------------------------
 	# rect_drag footprint – použijeme pôvodné a,b (funkcia už rieši min/max)
-	var footprint: Array[Vector2i] = PlacementServiceScript.get_footprint(
+	var footprint: Array[Vector2i] = PlacementService.get_footprint(
 		building_id,
 		a,
 		b
@@ -175,13 +169,13 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 	ctx["occupied_cells"] = _compute_occupied_cells()
 	ctx["resource_cells"] = []  # foundation nepotrebuje resource node
 
-	var validation: Dictionary = PlacementServiceScript.validate_placement(
+	var validation: Dictionary = PlacementService.validate_placement(
 		building_id,
 		footprint,
 		ctx
 	)
 
-	var ghost_info: Dictionary = GhostServiceScript.build_ghost_info(
+	var ghost_info: Dictionary = GhostService.build_ghost_info(
 		building_id,
 		footprint,
 		validation
@@ -195,16 +189,16 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 		return  # STOP – foundation sa nepostaví
 	# -------------------------------------------------------------------------
 
-	# --- RESOURCE COST: Foundation žerie Building Materials -------------------
-	var tile_count: int = size.x * size.y
-	var total_cost_bm: float = float(tile_count) * FOUNDATION_COST_PER_TILE_BM
-	var cost := { &"building_materials": total_cost_bm }
-
-	if not State.try_spend(cost):
-		var have_bm: float = State.get_resource(&"building_materials")
-		print("[BuildMode] Not enough Building Materials for foundation. Need=",
-			total_cost_bm, " have=", have_bm, " tiles=", tile_count, " size=", size)
-		return
+	# --- RESOURCE COST: cez BuildingsCfg/ConstructionServiceScript ------------------
+	var cost: Dictionary = ConstructionServiceScript.compute_cost(building_id, size)
+	if not cost.is_empty():
+		if not State.try_spend(cost):
+			print("[BuildMode] Not enough resources for ", building_id, " required=", cost)
+			for res_id in cost.keys():
+				var need: float = float(cost[res_id])
+				var have: float = State.get_resource(res_id)
+				print("   - ", res_id, " need=", need, " have=", have)
+			return
 	# -------------------------------------------------------------------------
 
 	if construction_site_scene == null or building_scene == null or inside_build_scene == null:
@@ -219,44 +213,25 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 		push_error("[BuildMode] construction_root not found")
 		return
 
-	# 1) Inštancia ConstructionSite mimo stromu
-	var site: Node2D = construction_site_scene.instantiate() as Node2D
-	site.name = "ConstructionSite_%d_%d" % [minx, miny]
-
-	# 2) Nastaviť exporty ešte mimo stromu
-	site.set("terrain_grid", terrain_grid)
-	site.set("top_left_cell", Vector2i(minx, miny))
-	site.set("size_cells", size)
-	site.set("cell_px", cell_px)
-	site.set("building_scene", building_scene)
-	site.set("inside_build_scene", inside_build_scene)
-	site.set("buildings_root_path", buildings_root)
-	site.set("z_index", 500)
-
-	# --- beh na HODINÁCH (pauza/rýchlosť ovláda GameClock) ---
-	# ConstructionSite.BuildTimeMode.GAME_HOURS_FIXED = 2
-	site.set("time_mode", 2)
-
-	var hours := int(ceil(float(tile_count) * BuildCfg.FOUNDATION_HOURS_PER_TILE))
-	site.set("build_game_hours", max(1, hours))
-
-	# foundation po dokončení vytvorí interiér
-	site.set("use_interior", true)
-
-	# 3) Až teraz pridať do stromu
-	construction_root_node.add_child(site)
-
-	# Debug
-	var scr: Script = site.get_script()
-	print("[BuildMode] Site added @", site.get_path(), " script=", scr)
-	print("[BuildMode] Site exports -> tl=", site.get("top_left_cell"),
-		" size=", site.get("size_cells"),
-		" tg_is_null=", site.get("terrain_grid") == null)
-
-	site.add_to_group("construction_sites")
+	# --- ConstructionSite cez ConstructionServiceScript ----------------------------
+	var site: Node2D = ConstructionServiceScript.spawn_site({
+		"building_id": building_id,
+		"site_scene": construction_site_scene,
+		"construction_parent": construction_root_node,
+		"terrain_grid": terrain_grid,
+		"top_left_cell": Vector2i(minx, miny),
+		"size_cells": size,
+		"cell_px": cell_px,
+		"buildings_root_path": buildings_root,
+		"building_scene": building_scene,
+		"inside_build_scene": inside_build_scene,
+		"use_interior": true,
+	})
+	if site == null:
+		return
 
 	print("[BuildMode] ConstructionSite created @", Vector2i(minx, miny),
-		" size=", size, " tiles=", tile_count, " cost_BM=", total_cost_bm)
+		" size=", size, " cost=", cost)
 
 
 # --- EXTRACTOR: spustenie stavby priamo na ResourceNode (snap center) --------
@@ -276,28 +251,28 @@ func _start_extractor_at_node(node_at_center: ResourceNode) -> void:
 		print("[BuildMode] Node ", node_at_center.name, " už má extractor (alebo rozostavaný).")
 		return
 
-	# --- 1) Vypočítaj footprint podľa BuildingsCfg + pozície node ----------------
+	# --- 1) Footprint + pozícia podľa BuildingsCfg ----------------------------
 	var building_id := "bm_extractor"
 	var cfg := BuildingsCfg.get_building(building_id)
 	if cfg.is_empty():
 		push_error("[BuildMode] Missing cfg for bm_extractor v BuildingsCfg")
 		return
 
-	var footprint_size: Vector2i = cfg.get("size_cells", Vector2i.ONE)
+	var footprint_size: Vector2i = (cfg.get("size_cells", Vector2i.ONE) as Vector2i)
 
 	# stred grid tile pod node
 	var snap_center: Vector2 = _grid_center_from_world(node_at_center.global_position)
 	var top_left_cell: Vector2i = _top_left_cell_for_center(snap_center, footprint_size)
 
-	# pre validity-check potrebujeme zoznam všetkých buniek footprintu
+	# pre validáciu potrebujeme zoznam všetkých buniek footprintu
 	var footprint: Array[Vector2i] = []
 	for y in footprint_size.y:
 		for x in footprint_size.x:
 			footprint.append(Vector2i(top_left_cell.x + x, top_left_cell.y + y))
 
-	# --- 2) Validácia cez PlacementService --------------------------------------
+	# --- 2) Validácia cez PlacementService ------------------------------------
 	var ctx: Dictionary = {}
-	ctx["occupied_cells"] = _compute_occupied_cells()   # všetky hotové budovy + ConstructionSite
+	ctx["occupied_cells"] = _compute_occupied_cells()   # hotové budovy + ConstructionSite
 	ctx["resource_cells"] = _compute_resource_cells()   # pozície resource nodov
 
 	var validation: Dictionary = PlacementService.validate_placement(
@@ -317,57 +292,51 @@ func _start_extractor_at_node(node_at_center: ResourceNode) -> void:
 			building_id,
 			ghost_info.get("errors", [])
 		])
-		return  # STOP – ani neskúšaj stavať, ani nestrhávaj resource
+		return  # STOP
+	# -------------------------------------------------------------------------
 
-	# --- 3) Resource cost až po úspešnej validácii ------------------------------
-	var cost: Dictionary = {
-		&"building_materials": EXTRACTOR_COST_BM,
-		&"equipment": EXTRACTOR_COST_EQ,
-	}
-	if not State.try_spend(cost):
-		var have_bm: float = State.get_resource(&"building_materials")
-		var have_eq: float = State.get_resource(&"equipment")
-		print("[BuildMode] Not enough resources for extractor. Need BM=",
-			EXTRACTOR_COST_BM, " EQ=", EXTRACTOR_COST_EQ,
-			" have BM=", have_bm, " EQ=", have_eq)
-		return
+	# --- 3) Resource cost cez BuildingsCfg/ConstructionServiceScript ----------------
+	var cost: Dictionary = ConstructionServiceScript.compute_cost(building_id, footprint_size)
+	if not cost.is_empty():
+		if not State.try_spend(cost):
+			print("[BuildMode] Not enough resources for ", building_id, " required=", cost)
+			for res_id in cost.keys():
+				var need: float = float(cost[res_id])
+				var have: float = State.get_resource(res_id)
+				print("   - ", res_id, " need=", need, " have=", have)
+			return
+	# -------------------------------------------------------------------------
 
-	# --- 4) ConstructionSite vytvárame až teraz --------------------------------
+	# --- 4) ConstructionSite vytvárame cez ConstructionServiceScript ----------------
 	var construction_root_node: Node = get_node_or_null(construction_root)
 	if construction_root_node == null:
 		push_error("[BuildMode] construction_root not found for extractor")
 		return
 
-	var site: Node2D = construction_site_scene.instantiate() as Node2D
-	site.name = "ExtractorSite_%d_%d" % [top_left_cell.x, top_left_cell.y]
+	var site: Node2D = ConstructionServiceScript.spawn_site({
+		"building_id": building_id,
+		"site_scene": construction_site_scene,
+		"construction_parent": construction_root_node,
+		"terrain_grid": terrain_grid,
+		"top_left_cell": top_left_cell,
+		"size_cells": footprint_size,
+		"cell_px": cell_px,
+		"buildings_root_path": buildings_root,
+		"building_scene": extractor_scene,
+		"use_interior": false,
+		"use_center_override": true,
+		"spawn_center_override_world": snap_center,
+		"visual_px_size": BuildCfg.EXTRACTOR_GHOST_PX,
+		"linked_resource_node_path": node_at_center.get_path(),
+	})
+	if site == null:
+		return
 
-	site.set("terrain_grid", terrain_grid)
-	site.set("top_left_cell", top_left_cell)
-	site.set("size_cells", footprint_size)
-	site.set("cell_px", cell_px)
-	site.set("building_scene", extractor_scene)
-	site.set("buildings_root_path", buildings_root)
-	site.set("z_index", 500)
-	# prepojíme ConstructionSite s konkrétnym ResourceNode
-	site.set("linked_resource_node_path", node_at_center.get_path())
-
-	# 3 herné hodiny (v minútach) podľa GameClock
-	site.set("time_mode", CS_TIME_MODE_GAME_MINUTES)
-	site.set("build_game_minutes", EXTRACTOR_BUILD_MINUTES)
-	site.set("use_interior", false)
-
-	# Finálna budova presne na snap center
-	site.set("use_center_override", true)
-	site.set("spawn_center_override_world", snap_center)
-	site.set("visual_px_size", BuildCfg.EXTRACTOR_GHOST_PX)
-	
-	construction_root_node.add_child(site)
-
-	# Označ node, že je obsadený
+	# Označ node, že je obsadený (aby sme tam nestavali druhý extractor)
 	node_at_center.has_extractor = true
 
 	print("[BuildMode] Extractor construction started @", top_left_cell,
-		" size=", footprint_size, " (snap center) node=", node_at_center.node_id)
+		" size=", footprint_size, " node=", node_at_center.node_id, " cost=", cost)
 
 
 # --- Helpery výpočtu veľkostí a pozícií --------------------------------------
@@ -394,15 +363,18 @@ func _tile_px() -> Vector2:
 
 	return Vector2(w, h)
 
+
 func _cell_corners_world(cell: Vector2i) -> Dictionary:
 	var half := _tile_px() * 0.5
 	var center_local: Vector2 = terrain_grid.map_to_local(cell)
 	var center_world: Vector2 = terrain_grid.to_global(center_local)
 	return { "tl": center_world - half, "br": center_world + half }
 
+
 func _cell_to_world_center(cell: Vector2i) -> Vector2:
 	var p_local: Vector2 = terrain_grid.map_to_local(cell)
 	return terrain_grid.to_global(p_local)
+
 
 func _grid_center_from_world(world_pos: Vector2) -> Vector2:
 	var local_tm: Vector2 = terrain_grid.to_local(world_pos)
@@ -410,12 +382,14 @@ func _grid_center_from_world(world_pos: Vector2) -> Vector2:
 	var cell_local_center: Vector2 = terrain_grid.map_to_local(cell)
 	return terrain_grid.to_global(cell_local_center)
 
+
 func _top_left_cell_for_center(center_world: Vector2, footprint_cells: Vector2i) -> Vector2i:
 	var t: Vector2 = _tile_px()
 	var foot_px: Vector2 = Vector2(footprint_cells.x * t.x, footprint_cells.y * t.y)
 	var top_left_world: Vector2 = center_world - foot_px * 0.5
 	var tl_local_tm: Vector2 = terrain_grid.to_local(top_left_world)
 	return terrain_grid.local_to_map(tl_local_tm)
+
 
 func _extractor_footprint_cells() -> Vector2i:
 	var t: Vector2 = _tile_px()
@@ -428,6 +402,7 @@ func _extractor_footprint_cells() -> Vector2i:
 	if cy < 1:
 		cy = 1
 	return Vector2i(cx, cy)
+
 
 func _find_nearest_free_node(world_pos: Vector2, max_dist_px: float) -> ResourceNode:
 	var best: ResourceNode = null
@@ -503,13 +478,13 @@ func _draw() -> void:
 			return
 
 		var data: Dictionary = _get_extractor_ghost_data()
-		var footprint: Array = data.get("footprint", [])
-		var ghost_info: Dictionary = data.get("ghost_info", {})
-		var per_cell_state: Dictionary = ghost_info.get("per_cell_state", {})
-		var has_snap_node: bool = bool(data.get("has_node", false))  # renamed, nech nie je konflikt s Node.has_node()
+		var footprint2: Array = data.get("footprint", [])
+		var ghost_info2: Dictionary = data.get("ghost_info", {})
+		var per_cell_state2: Dictionary = ghost_info2.get("per_cell_state", {})
+		var has_snap_node: bool = bool(data.get("has_node", false))
 
 		# Ak nemáme footprint, nakreslíme len malý červený ghost pod kurzorom
-		if footprint.is_empty():
+		if footprint2.is_empty():
 			var ghost_px_fb: Vector2 = BuildCfg.EXTRACTOR_GHOST_PX
 			var center_world_fb: Vector2 = _grid_center_from_world(get_global_mouse_position())
 			var tl_world_fb: Vector2 = center_world_fb - ghost_px_fb * 0.5
@@ -519,10 +494,10 @@ func _draw() -> void:
 			return
 
 		# Zistíme, či je aspoň jeden tile blokovaný
-		var is_valid: bool = bool(ghost_info.get("is_valid", true))
-		for cell_any in footprint:
-			var cell: Vector2i = cell_any as Vector2i
-			var state_idx: int = int(per_cell_state.get(cell, 0))
+		var is_valid: bool = bool(ghost_info2.get("is_valid", true))
+		for cell_any2 in footprint2:
+			var cell2: Vector2i = cell_any2 as Vector2i
+			var state_idx: int = int(per_cell_state2.get(cell2, 0))
 			if state_idx != 0:
 				is_valid = false
 				break
@@ -532,14 +507,13 @@ func _draw() -> void:
 		var miny :=  999999
 		var maxx := -999999
 		var maxy := -999999
-		for cell_any in footprint:
-			var c: Vector2i = cell_any as Vector2i
+		for cell_any3 in footprint2:
+			var c: Vector2i = cell_any3 as Vector2i
 			if c.x < minx: minx = c.x
 			if c.y < miny: miny = c.y
 			if c.x > maxx: maxx = c.x
 			if c.y > maxy: maxy = c.y
 
-		# Stred vypočítame cez float → int, nech nemáme warning o integer division
 		var center_x: int = int(float(minx + maxx) * 0.5)
 		var center_y: int = int(float(miny + maxy) * 0.5)
 		var center_cell := Vector2i(center_x, center_y)
@@ -560,7 +534,6 @@ func _draw() -> void:
 			draw_rect(rect, Color(1, 0, 0, 0.9), false, 1.5)
 
 
-
 # --- Pomocníci vstupu --------------------------------------------------------
 
 func _mouse_cell() -> Vector2i:
@@ -570,6 +543,7 @@ func _mouse_cell() -> Vector2i:
 	var mouse_world: Vector2 = get_global_mouse_position()
 	var mouse_local_tm: Vector2 = terrain_grid.to_local(mouse_world)
 	return terrain_grid.local_to_map(mouse_local_tm)
+
 
 func _compute_occupied_cells() -> Dictionary:
 	var occupied: Dictionary = {}
@@ -583,6 +557,7 @@ func _compute_occupied_cells() -> Dictionary:
 				occupied[cell] = true
 
 	return occupied
+
 
 func _compute_resource_cells() -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
@@ -598,8 +573,8 @@ func _compute_resource_cells() -> Array[Vector2i]:
 			cells.append(cell)
 	return cells
 
+
 func _get_foundation_ghost_data() -> Dictionary:
-	# building_id máme v BuildingsCfg.gd ako "foundation_basic"
 	var building_id := "foundation_basic"
 
 	# určíme start/end podľa toho, či ťaháš rect, alebo len hooveruješ
@@ -641,6 +616,7 @@ func _get_foundation_ghost_data() -> Dictionary:
 		"ghost_info": ghost_info,
 	}
 
+
 func _get_extractor_ghost_data() -> Dictionary:
 	var building_id := "bm_extractor"
 
@@ -675,7 +651,8 @@ func _get_extractor_ghost_data() -> Dictionary:
 	)
 
 	var ctx: Dictionary = {}
-	ctx["occupied_cells"] = _compute_occupied_cells()
+	var occ: Dictionary = _compute_occupied_cells()
+	ctx["occupied_cells"] = occ
 	ctx["resource_cells"] = _compute_resource_cells()
 
 	var validation: Dictionary = PlacementService.validate_placement(
@@ -698,7 +675,6 @@ func _get_extractor_ghost_data() -> Dictionary:
 
 
 func _draw_ghost_tile(cell: Vector2i, state_idx: int) -> void:
-	# prepočet bunka -> lokálny Rect2
 	var hc: Dictionary = _cell_corners_world(cell)
 	var tl_world: Vector2 = hc["tl"]
 	var br_world: Vector2 = hc["br"]
@@ -706,18 +682,12 @@ func _draw_ghost_tile(cell: Vector2i, state_idx: int) -> void:
 	var br_local: Vector2 = to_local(br_world)
 	var rect: Rect2 = Rect2(tl_local, br_local - tl_local)
 
-	# state_idx:
-	# 0 = OK, 1 = blocked (kolízia / MinClearRadius), ostatné = varovania
 	match state_idx:
 		0:
-			# valid tile – klasický ghost fill
 			draw_rect(rect, BuildCfg.GHOST_FILL, true)
 		1:
-			# bloknutý tile – červený overlay
 			draw_rect(rect, Color(1, 0.2, 0.2, 0.35), true)
 		_:
-			# iné stavy (ak by sme neskôr pridali) – napr. žltý warning
 			draw_rect(rect, Color(1, 1, 0.2, 0.35), true)
 
-	# vždy dokreslíme obrys gridu
 	draw_rect(rect, BuildCfg.GHOST_TILE_STROKE, false, 1.5)

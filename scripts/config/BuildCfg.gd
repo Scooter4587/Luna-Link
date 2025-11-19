@@ -8,11 +8,9 @@ const CELL_PX := 128
 ## Minimálny rozmer základu (foundation)
 const FOUNDATION_MIN_SIZE := Vector2i(2, 2)
 const EXTRACTOR_SIZE_CELLS: Vector2i = Vector2i(3, 3) # footprint 3×3 (ľahko zmeň podľa sprite)
+
 const GHOST_HINT        := Color(0.2, 0.6, 1.0, 0.25) # modrá výplň pre “hint”
 const GHOST_HINT_STROKE := Color(0.3, 0.8, 1.0, 1.0)  # modrá linka pre “hint”
-
-## Konštanta pre hodiny stavby
-const FOUNDATION_HOURS_PER_TILE: float = 0.05  # napr. 20 tiles = 1 herná hodina
 
 ## Hrúbka obvodového múru v dlaždiciach (ovplyvní ghost prstenec a prípadné okrajové kladenie)
 var FOUNDATION_WALL_THICKNESS := 1

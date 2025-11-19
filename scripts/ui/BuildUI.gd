@@ -1,5 +1,9 @@
 extends Control
-# Spodná lišta – 4 režimy (Build + 3 placeholdery). Emituje vybraný tool_id.
+class_name BuildUI
+## BuildUI: spodná lišta s módmi (Build / Rooms / Utilities / Demolish).
+## - nájde tlačidlá podľa mena
+## - spojí ich do ButtonGroup
+## - pri stlačení emituje signal tool_requested(tool_id).
 
 signal tool_requested(tool_id: int)
 
@@ -11,7 +15,11 @@ var btn_utils: Button
 var btn_demo:  Button
 var group: ButtonGroup
 
-# V _ready() nájde tlačidlá, nastaví ButtonGroup a predvolí Build.
+
+## _ready():
+## - vyhľadá tlačidlá
+## - nastaví ButtonGroup
+## - prepne defaultne na BUILD
 func _ready() -> void:
 	# nájdi tlačidlá podľa názvov (funguje aj keď sú hlbšie v hierarchii)
 	btn_build = find_child("BtnBuild", true, false) as Button
@@ -21,8 +29,8 @@ func _ready() -> void:
 
 	for b in [btn_build, btn_rooms, btn_utils, btn_demo]:
 		if b == null:
-			push_error("BuildUI: chýba tlačidlo (BtnBuild/BtnRooms/BtnUtilities/BtnDemolish). Skontroluj názvy.")
-	
+			push_error("[BuildUI] Chýba tlačidlo (BtnBuild/BtnRooms/BtnUtilities/BtnDemolish). Skontroluj názvy.")
+
 	group = ButtonGroup.new()
 	var buttons: Array[Button] = []
 	if btn_build: buttons.append(btn_build)
@@ -38,9 +46,12 @@ func _ready() -> void:
 	# predvolený režim: Build
 	if btn_build:
 		btn_build.button_pressed = true
-	#emit_signal("tool_requested", ToolID.BUILD)
+		# Neemitujeme hneď tool_requested – BuildMode si môže default riešiť podľa potreby.
 
-# Po kliknutí emituje tool_id podľa stlačeného tlačidla.
+
+## _on_button_pressed(which):
+## - zistí, ktoré tlačidlo je stlačené
+## - emituje správny ToolID smerom do BuildMode
 func _on_button_pressed(which: Button) -> void:
 	if which == btn_build:
 		emit_signal("tool_requested", ToolID.BUILD)

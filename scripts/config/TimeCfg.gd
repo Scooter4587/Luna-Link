@@ -1,6 +1,8 @@
-# res://scripts/config/TimeCfg.gd
 extends RefCounted
 class_name TimeCfg
+## TimeCfg:
+## Čistý config pre čas – počiatočný dátum, kalendár, rýchlosti a názvy mesiacov.
+## GameClock z toho len číta; logiku času rieši GameClock.gd.
 
 # --- Začiatok hry ---
 const START_YEAR: int = 2073
@@ -12,7 +14,7 @@ const START_HOUR: int = 0
 const HOURS_PER_DAY: int = 24
 const DAYS_PER_MONTH: int = 30     # flat 30 pre jednoduchosť (UI/počty stabilné)
 
-# Koľko reálnych sekúnd trvá 1 herná HODINA pri rýchlosti x1.
+# Koľko reálnych sekúnd trvá 1 herná hodina pri rýchlosti x1.
 const REAL_SECONDS_PER_GAME_HOUR: float = 2.0
 
 # Kľúče rýchlosti → násobky

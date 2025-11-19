@@ -1,11 +1,11 @@
 extends Control
 class_name TopBarUI
-# TopBarUI: horný panel podobný Stellaris UI.
-# Zobrazuje:
-# - zľava: Base Build resources
-# - v strede: Special (innovations, energy for Earth)
-# - sprava: Crew needs
-# - úplne vpravo: čas a ovládanie rýchlosti (pause, 1x, 2x, 4x)
+## TopBarUI: horný panel v štýle Stellaris.
+## Zobrazuje:
+## - Base Build resources (ľavý blok)
+## - Special (stred)
+## - Crew needs (pravý blok)
+## - vpravo čas + ovládanie rýchlosti (pause, 1x, 2x, 4x)
 
 # --- UI referencie: Base Build ------------------------------------------------
 @onready var lbl_building_materials: Label = $Panel/RootHBox/BaseBuildGroup/Lbl_BuildingMaterials
@@ -31,20 +31,6 @@ class_name TopBarUI
 @onready var btn_2x: Button = $Panel/RootHBox/TimeGroup/Btn_2x
 @onready var btn_4x: Button = $Panel/RootHBox/TimeGroup/Btn_4x
 
-const REAL_SECONDS_PER_GAME_HOUR: float = 2.0   # príklad
-const HOURS_PER_DAY: int = 24
-const DAYS_PER_MONTH: int = 30
-const MONTH_NAMES: Array[String] = [
-	"January", "February", "March", "April", "May", "June",
-	"July", "August", "September", "October", "November", "December"
-]
-const SPEEDS := {
-	"pause": 0.0,
-	"x1": 1.0,
-	"x2": 2.0,
-	"x4": 4.0,
-}
-
 # Mapovanie resource id -> konkrétny Label v top bare.
 var _resource_labels: Dictionary = {}
 
@@ -63,6 +49,11 @@ var _resource_short_names: Dictionary = {
 }
 
 
+## _ready():
+## - naplní mapu resource -> Label
+## - pripojí sa na signály State a Clock
+## - refreshne prvotné hodnoty
+## - zvýrazní správne tlačidlo rýchlosti
 func _ready() -> void:
 	_init_resource_label_map()
 	_connect_signals()
@@ -71,7 +62,8 @@ func _ready() -> void:
 	_highlight_speed_button(Clock.get_time_speed_key())
 
 
-# Nastaví slovník id -> Label podľa ResourceCfg.
+## _init_resource_label_map():
+## - naplní slovník _resource_labels podľa ResourceCfg skupín
 func _init_resource_label_map() -> void:
 	_resource_labels.clear()
 
@@ -89,7 +81,10 @@ func _init_resource_label_map() -> void:
 	_resource_labels[&"stress"] = lbl_stress
 
 
-# Pripojí sa na signály z GameState a GameClock a na tlačidlá rýchlosti.
+## _connect_signals():
+## - pripojí State.resource_changed → update resource labelov
+## - pripojí Clock.minute_changed → update času
+## - nastaví click handlery pre time speed tlačidlá
 func _connect_signals() -> void:
 	# Resource zmeny
 	State.resource_changed.connect(_on_resource_changed)
@@ -118,19 +113,23 @@ func _connect_signals() -> void:
 
 # -- Resource UI ---------------------------------------------------------------
 
-# Aktualizuje všetky resource labely podľa aktuálneho stavu v GameState.
+## _refresh_all_resources():
+## - prejde všetky registrované resource id a aktualizuje text v labeloch
 func _refresh_all_resources() -> void:
 	for id in _resource_labels.keys():
 		var value: float = State.get_resource(id)
 		_update_resource_label(id as StringName, value)
 
 
-# Handler na signál State.resource_changed.
+## _on_resource_changed():
+## - handler na State.resource_changed
+## - zaktualizuje len konkrétny resource
 func _on_resource_changed(id: StringName, new_value: float, _delta: float) -> void:
 	_update_resource_label(id, new_value)
 
 
-# Nastaví text labelu pre daný resource id.
+## _update_resource_label(id, value):
+## - nastaví text a tooltip pre konkrétny resource slot v top bare
 func _update_resource_label(id: StringName, value: float) -> void:
 	if not _resource_labels.has(id):
 		# Resource existuje v GameState, ale nemá UI slot (napr. neskôr).
@@ -164,6 +163,7 @@ func _update_resource_label(id: StringName, value: float) -> void:
 					var sign_str := "+" if hourly > 0.0 else ""
 					var hourly_int: int = int(round(hourly))
 					text += " (%s%d/h)" % [sign_str, hourly_int]
+
 	label.text = text
 
 	# Tooltip – plný názov + základný popis z ResourceCfg.
@@ -176,12 +176,14 @@ func _update_resource_label(id: StringName, value: float) -> void:
 
 # -- Clock UI ------------------------------------------------------------------
 
-# Handler na signál Clock.minute_changed – aktualizuje zobrazenie času a dátumu.
+## _on_clock_minute_changed():
+## - handler na Clock.minute_changed – iba refreshne čas/dátum
 func _on_clock_minute_changed(_year: int, _month_index: int, _day: int, _hour: int, _minute: int) -> void:
 	_refresh_clock_labels()
 
 
-# Aktualizuje text času a dátumu z GameClock.
+## _refresh_clock_labels():
+## - zobrazí aktuálny čas a dátum podľa GameClock
 func _refresh_clock_labels() -> void:
 	lbl_time.text = Clock.get_formatted_time()
 	lbl_date.text = Clock.get_formatted_date()
@@ -189,7 +191,9 @@ func _refresh_clock_labels() -> void:
 
 # -- Rýchlosť času – vizuál tlačidiel -----------------------------------------
 
-# Jednoduché zvýraznenie aktívneho tlačidla – ostatné odšedíme (disabled=false/true).
+## _highlight_speed_button(active_key):
+## - zresetuje disabled na všetkých tlačidlách
+## - podľa aktívneho key (pause/x1/x2/x4) disabluje „aktuálne“ tlačidlo
 func _highlight_speed_button(active_key: String) -> void:
 	btn_pause.disabled = false
 	btn_1x.disabled = false
