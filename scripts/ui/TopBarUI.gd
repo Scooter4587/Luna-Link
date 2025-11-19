@@ -34,8 +34,10 @@ class_name TopBarUI
 const REAL_SECONDS_PER_GAME_HOUR: float = 2.0   # príklad
 const HOURS_PER_DAY: int = 24
 const DAYS_PER_MONTH: int = 30
-const MONTH_NAMES: Array[String] = ["January","February","January", "February", "March", "April", "May", "June",
-	"July", "August", "September", "October", "November", "December"]
+const MONTH_NAMES: Array[String] = [
+	"January", "February", "March", "April", "May", "June",
+	"July", "August", "September", "October", "November", "December"
+]
 const SPEEDS := {
 	"pause": 0.0,
 	"x1": 1.0,
@@ -149,11 +151,19 @@ func _update_resource_label(id: StringName, value: float) -> void:
 			# Napr. Happiness / Stress 0..100
 			var int_val: int = int(round(value))
 			text = "%s: %d%%" % [short_name, int_val]
+
 		_:
-			# STOCK / PROGRESS – zobrazíme celé číslo; neskôr pridáme income za mesiac.
+			# STOCK / PROGRESS – zobrazíme celé číslo
 			var int_val2: int = int(round(value))
 			text = "%s: %d" % [short_name, int_val2]
 
+			# Špeciálny case: Building Materials – ukáž aj hourly delta
+			if id == &"building_materials":
+				var hourly: float = State.get_hourly_delta_for(&"building_materials")
+				if abs(hourly) > 0.01:
+					var sign_str := "+" if hourly > 0.0 else ""
+					var hourly_int: int = int(round(hourly))
+					text += " (%s%d/h)" % [sign_str, hourly_int]
 	label.text = text
 
 	# Tooltip – plný názov + základný popis z ResourceCfg.

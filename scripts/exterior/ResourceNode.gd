@@ -6,6 +6,8 @@ class_name ResourceNode
 
 @export var node_id: StringName = &"regolith_small"
 @export var extractor_path: NodePath = NodePath("")
+@export var resource_id: StringName = &"building_materials"
+@export var output_per_hour: float = 5.0
 
 var _def: Dictionary = {}
 var depleted: bool = false        # do budúcna, zatiaľ len flag
@@ -20,7 +22,7 @@ func _ready() -> void:
 
     add_to_group("resource_nodes")
 
-    var output_per_hour: float = get_output_per_hour()
+    # var output_per_hour: float = get_output_per_hour()
     var res_id: StringName = get_resource_id()
     var display_name: String = _def.get("display_name", str(node_id))
 
@@ -49,3 +51,9 @@ func get_output_per_hour() -> float:
 # Do budúcna – ak budeme sledovať remaining_amount.
 func has_remaining() -> bool:
     return not depleted
+
+func get_hourly_output() -> Dictionary:
+    # nepíš "var output_per_hour = ...", používaj priamo člen triedy
+    return {
+        resource_id: output_per_hour
+    }

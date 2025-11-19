@@ -16,8 +16,11 @@ var build_cfg: Dictionary = BuildingsCfg.get_building("bm_extractor")
 var linked_node: ResourceNode = null
 var _clock: Node = null
 
+
+
 func _ready() -> void:
 	add_to_group("buildings")
+	add_to_group("bm_extractors")
 	print("BMExtractor build cfg:", build_cfg)
 
 	# 1) Pokus o priamy link z ConstructionSite cez NodePath
@@ -128,3 +131,6 @@ func get_occupied_cells() -> Array[Vector2i]:
 			cells.append(Vector2i(tl.x + x, tl.y + y))
 
 	return cells
+
+func get_linked_node() -> ResourceNode:
+	return linked_node

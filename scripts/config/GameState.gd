@@ -175,3 +175,31 @@ func try_spend(cost: Dictionary) -> bool:
         return false
     apply_cost(cost)
     return true
+
+func get_hourly_production() -> Dictionary:
+    var totals: Dictionary = {}
+
+    var extractors: Array[Node] = get_tree().get_nodes_in_group("bm_extractors")
+
+    for node: Node in extractors:
+        if not node.has_method("get_linked_node"):
+            continue
+
+        var linked: Node = node.get_linked_node()
+        if linked == null:
+            continue
+        if not linked.has_method("get_hourly_output"):
+            continue
+
+        var out_dict: Dictionary = linked.get_hourly_output()
+        for key in out_dict.keys():
+            var res_id: StringName = key as StringName
+            var value: float = float(out_dict[res_id])
+            var prev: float = float(totals.get(res_id, 0.0))
+            totals[res_id] = prev + value
+
+    return totals
+
+func get_hourly_delta_for(resource_id: StringName) -> float:
+    var totals: Dictionary = get_hourly_production()
+    return float(totals.get(resource_id, 0.0))

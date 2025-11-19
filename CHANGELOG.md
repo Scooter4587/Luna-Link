@@ -2,6 +2,26 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.48] – 2025-11-19
+Added
+BMExtractor ↔ ResourceNode prepojenie:** Každý BMExtractor sa po dostavaní automaticky nalinkuje na najbližší `ResourceNode` pod sebou a drží si referenciu (`linked_node`).
+Hodinová produkcia v GameState:** Pridané funkcie `get_hourly_production()` a `get_hourly_delta_for(id)`, ktoré spočítajú hodinový výstup zo všetkých aktívnych extractorov podľa naviazaných resource nodov.
+TopBarUI – zobrazenie +X/h:** Horná lišta pri Building Materials zobrazuje aktuálnu hodnotu a čistú hodinovú produkciu vo formáte napr. `BM: 2000 (+5/h)`.
+
+Changed
+BMExtractor:
+- `_ready()` najprv skúsi nájsť `ResourceNode` hneď, a ak ešte nie je presne na finálnej pozícii, spraví oneskorený link cez `call_deferred("_late_link_attempt")`.
+- Po úspešnom nalinkovaní sa pripojí na `GameClock.hour_changed` a pri každej hernej hodine pridá do `GameState` hodnoty z `linked_node.get_hourly_output()`.
+ResourceNode: Zjednotený výstup produkcie cez `get_hourly_output()`, ktorý vracia slovník typu `{ resource_id: output_per_hour }` a slúži ako jediný zdroj pravdy pre produkciu nodu.
+
+Fixed
+Opravené viaceré GDScript warningy (tieňovanie premenných, integer division, nepoužité parametre) v `BuildMode.gd`, `GameState.gd`, `ResourceNode.gd` a `TopBarUI.gd`.
+Stabilizované spojenie extractor ↔ resource node (overené cez Remote/Debugger – `linked_node` sa nastavuje korektne a produkcia beží len pri platnom linku).
+
+Notes
+Začína Veľký Clean-up na verziu 0.0.5
+
+
 [0.0.47] – 2025-11-18
 Added
 BMExtractor: pri `_ready()` sa automaticky pokúsi nájsť najbližší `ResourceNode` pod sebou a uloží ho do premennej `linked_node`.
