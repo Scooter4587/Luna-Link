@@ -2,6 +2,16 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.53] – 2025-11-22
+Added
+Backend pre produkčné pipeline
+`ProductionHourly` behavior pre konverziu resource-ov v čase (napr. ice → water, water → oxygen, water → food).
+`ProductionSystem` core manažér, ktorý tickuje všetky `ProductionHourly` komponenty cez herné hodiny.
+
+Notes
+Zatiaľ žiadne priame napojenie na budovy ani GameClock – systém je pripravený v pozadí a aktivuje sa v neskoršom kroku (0.0.57+).
+
+
 [0.0.52] – 2025-11-22
 Added
 Základný backend pre energy systém

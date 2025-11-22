@@ -22,6 +22,7 @@ Clock="*res://scripts/config/GameClock.gd"
 State="*res://scripts/config/GameState.gd"
 ResourceManager="*res://scripts/core/resource_manager.gd"
 EnergySystem="*res://scripts/core/behaviors/energy_system.gd"
+ProductionSystem="*res://scripts/core/behaviors/production_system.gd"
 
 [display]
 
