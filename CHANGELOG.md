@@ -2,6 +2,17 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.52] – 2025-11-22
+Added
+Základný backend pre energy systém
+`EnergySystem` core manažér.
+Behaviour komponenty `PowerProducer`, `PowerConsumer`, `PowerStorage` (pripravené na napojenie na budovy).
+Podpora pre vyhľadávanie energy komponentov cez groups (`power_producers`, `power_consumers`, `power_storages`).
+
+Changed
+Zatiaľ žiadne viditeľné zmeny v hre – energy systém je pripravený v pozadí a na budovy sa napojí v neskoršom kroku (0.0.57).
+
+
 [0.0.51] – 2025-11-22
 Added
 ResourceManager ako AutoLoad singleton pre globálne resourcy (energia, voda, jedlo, atď.).
