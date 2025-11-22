@@ -11,8 +11,20 @@ var resources: Dictionary = {}
 
 ## Inicializácia GameState – načítanie default hodnôt z ResourceCfg.
 func _ready() -> void:
-	_init_resources()
+	# Debug log pôvodného systému
 	print("[GameState] ready, resources initialized: ", resources)
+
+	# Sync všetkých GameState resources do ResourceManageru.
+	# Kľúčom sú StringName (&"…"), takže ResourceManager ich bez problémov preberie.
+	_sync_resources_to_resource_manager()
+
+## Skopíruje všetky hodnoty z GameState.resources do ResourceManageru.
+## - Zatiaľ je to len "mirror".
+## - Neskôr spravíme opačný smer (ResourceManager ako hlavný zdroj pravdy).
+func _sync_resources_to_resource_manager() -> void:
+	for resource_id in resources.keys():
+		var amount: float = resources[resource_id]
+		ResourceManager.set_amount(resource_id, amount)
 
 # -- Inicializácia ------------------------------------------------------------
 

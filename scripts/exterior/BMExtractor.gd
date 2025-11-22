@@ -8,7 +8,7 @@ class_name BMExtractor
 
 @export var auto_find_radius: float = 400.0           ## dosah pre fallback hľadanie najbližšieho node
 @export var production_multiplier: float = 1.0        ## multiplikátor produkcie (napr. upgrade, výskum)
-@export var debug_logs: bool = true                   ## zapnúť/vypnúť debug logy
+@export var debug_logs: bool = false                   ## zapnúť/vypnúť debug logy
 
 @export var size_cells: Vector2i = Vector2i(2, 2)     ## grid footprint (prepíše ConstructionSite)
 var top_left_cell: Vector2i = Vector2i.ZERO           ## ľavý-horný tile v grid coords (prepíše ConstructionSite)

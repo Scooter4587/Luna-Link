@@ -2,6 +2,17 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.51] – 2025-11-22
+Added
+ResourceManager ako AutoLoad singleton pre globálne resourcy (energia, voda, jedlo, atď.).
+
+Changed
+GameState pri štarte synchronizuje svoje resource hodnoty do ResourceManageru.
+
+Notes
+Updatovaný Roadmap až po 0.1
+Dev notes - detaily a vysvetlivky na postup.
+
 [0.0.5] – 2025-11-19
 
 Added
