@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://b2j0pq4mepth"]
+
+[node name="RightPanelUI" type="Control"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 3
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 200.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="SurvivalStats" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/SurvivalStats"]
+layout_mode = 2
+text = "Stats"
+
+[node name="Lbl_Energy" type="Label" parent="MarginContainer/SurvivalStats"]
+layout_mode = 2
+text = "Lbl_Energy.text = \"⚡ 0\""
+
+[node name="Lbl_Water" type="Label" parent="MarginContainer/SurvivalStats"]
+layout_mode = 2
+text = "Lbl_Water.text = \"💧 0\""
+
+[node name="Lbl_Oxygen" type="Label" parent="MarginContainer/SurvivalStats"]
+layout_mode = 2
+text = "Lbl_Oxygen.text = \"O₂ 0\""
+
+[node name="Lbl_Food" type="Label" parent="MarginContainer/SurvivalStats"]
+layout_mode = 2
+text = "Lbl_Food.text = \"🍽 0\""

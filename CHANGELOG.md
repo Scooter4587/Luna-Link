@@ -2,6 +2,20 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.55] – 2025-11-24
+Added
+RightPanelUI – pravý UI panel s debug zobrazením globálnych survival zdrojov (energy, water, oxygen_units, food) napojený na ResourceManager.resource_changed.
+DEBUG folder - bude slúžiť na debug skripty v budúcnosti
+DebugUi.gd - Debug script pre UI
+
+Removed
+test_placement.gd - vymazaný už ako nepotrebný
+
+Notes
+0.0.54 - Presunuté pod 0.0.56 - poznámka v dev-notes.md
+Panel zatiaľ zobrazuje iba globálne hodnoty. V budúcnosti bude doplnený o režim building inspector pre vybranú stavbu (názov budovy, upkeep, stav powered/unpowered).
+
+
 [0.0.53] – 2025-11-22
 Added
 Backend pre produkčné pipeline
