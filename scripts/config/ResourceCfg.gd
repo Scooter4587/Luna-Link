@@ -36,6 +36,7 @@ const ORDER_SPECIAL: Array[StringName] = [
 const ORDER_CREW_NEEDS: Array[StringName] = [
 	&"water",
 	&"food",
+	&"oxygen_units",
 	&"happiness",
 	&"stress",
 ]
@@ -141,6 +142,26 @@ const RESOURCES: Dictionary = {
 		"min_value": 0.0,
 		"max_value": 100.0,
 	},
+
+		&"ice": {
+		"display_name": "Ice",
+		"category": ResourceCategory.BASE_BUILD,
+		"type": ResourceType.STOCK,
+		"icon": "",
+		"tooltip": "Frozen water extracted from lunar regolith.",
+		"can_go_negative": false,
+	},
+
+		&"oxygen_units": {
+		"display_name": "Oxygen",
+		"category": ResourceCategory.CREW_NEEDS,
+		"type": ResourceType.STOCK,
+		"icon": "",
+		"tooltip": "Breathable oxygen available for pressurized hubs.",
+		"can_go_negative": false,
+	},
+
+
 }
 
 ## Vráti definíciu resource podľa id (alebo prázdny Dictionary, ak neexistuje).

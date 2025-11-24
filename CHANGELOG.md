@@ -2,6 +2,21 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.58] – 2025-11-24
+Added
+Backend pre survival pipeline cez GameState a hourly behaviors.
+Nové resources ice a oxygen_units v ResourceCfg vrátane zaradenia oxygen_units do sekcie crew needs v top bare.
+LifeSupportModule behavior, ktorý pri každej hernej hodine míňa water a produkuje oxygen_units alebo plní oxygen buffer priradenej PressurizedZone.
+PressurizedZone behavior s lokálnym oxygen bufferom pre hub zónu a statusom ok / low / critical / empty.
+StorageBehavior ako generický lokálny sklad s kapacitami pre konkrétne resource.
+
+Changed
+ProductionSystem teraz pri každom game hour ticku spracuje okrem skupiny production_hourly aj všetky nody v skupine behavior_hourly cez metódu _on_behavior_hour_tick, takže nový survival backend beží na rovnakom GameClock ticku ako existujúca produkcia.
+
+Notes
+Nové survival behaviors zatiaľ nie sú pripojené na konkrétne budovy. Slúžia ako príprava pre hub_core, oxygen_generator_small, hydroponics_basic, ice_mine_basic a warehouse_small, ktoré na ne napojíme v ďalších verziách.
+
+
 [0.0.57] – 2025-11-24
 Added
 AirlockBehavior – univerzálny behavior pre airlocky (crew aj vehicle). Obsahuje stavový automat so stavmi CLOSED_BOTH / OPEN_INSIDE / OPEN_OUTSIDE / CYCLING, API request_open_from_inside/request_open_from_outside, helper metódy is_passable_from_inside/is_passable_from_outside a signal airlock_state_changed pre budúci pathfinding a eventy.
