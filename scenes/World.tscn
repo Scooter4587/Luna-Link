@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://bvvbpdio45xnj"]
+[gd_scene load_steps=14 format=3 uid="uid://bvvbpdio45xnj"]
 
 [ext_resource type="PackedScene" uid="uid://dcmf7xuptleyw" path="res://scenes/Terrain.tscn" id="1_kqs1s"]
 [ext_resource type="PackedScene" uid="uid://b3jdkp4vsbhya" path="res://scenes/BuilUI.tscn" id="2_32lhk"]
@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" uid="uid://derui073uh73x" path="res://scenes/TopBarUI.tscn" id="8_b3faq"]
 [ext_resource type="PackedScene" uid="uid://b2j0pq4mepth" path="res://scenes/RightPanelUI.tscn" id="11_7c4bj"]
 [ext_resource type="Script" uid="uid://b1b7n0dcc63je" path="res://scripts/ui/RightPanelUI.gd" id="12_nrtoj"]
+[ext_resource type="Script" uid="uid://7757h5ifvok" path="res://scripts/DEBUG/DebugAirlock.gd" id="13_nrtoj"]
 
 [node name="World" type="Node2D"]
 
@@ -47,5 +48,10 @@ offset_left = -100.0
 offset_top = 300.0
 offset_bottom = 100.0
 script = ExtResource("12_nrtoj")
+
+[node name="Debug" type="Node" parent="."]
+
+[node name="AirlockTest" type="Node" parent="Debug"]
+script = ExtResource("13_nrtoj")
 
 [editable path="Terrain"]

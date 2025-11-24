@@ -2,6 +2,14 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.57] – 2025-11-24
+Added
+AirlockBehavior – univerzálny behavior pre airlocky (crew aj vehicle). Obsahuje stavový automat so stavmi CLOSED_BOTH / OPEN_INSIDE / OPEN_OUTSIDE / CYCLING, API request_open_from_inside/request_open_from_outside, helper metódy is_passable_from_inside/is_passable_from_outside a signal airlock_state_changed pre budúci pathfinding a eventy.
+
+Notes
+Behavior zatiaľ nie je napojený na konkrétnu airlock budovu ani na crew. Slúži ako základná kostra, na ktorú v ďalších verziách naviažeme reálne dvere, spotrebu energie/O2 a logiku zón (interiér vs. exteriér).
+
+
 [0.0.56] – 2025-11-24
 Added
 BuildingsCfg v2 so survival setom budov
