@@ -1,196 +1,95 @@
-extends Node
+extends Node2D
 class_name AirlockBehavior
-
-## -------------------------------------------------------
 ## AirlockBehavior
-##
-## Univerzálna logika airlocku (crew aj vehicle).
-## - 2 dvere: inside / outside.
-## - Nikdy nie sú otvorené oboje naraz.
-## - Prechod prebieha cez "cycle" s trvaním v sekundách.
-## - Pripravuje hooky pre pathfinding a resource spotrebu.
-## -------------------------------------------------------
+## - Riadi logiku airlocku (debug verzia).
+## - Je v skupine "airlocks" → DebugAirlock ho nájde.
+## - Metódy:
+##     request_open_from_inside()
+##     request_open_from_outside()
+## - Pri cykle notifikujeme PressurizedZone a logujeme.
 
-signal airlock_state_changed(
-	airlock: Node,
-	new_state: int,
-	inside_open: bool,
-	outside_open: bool,
-	is_cycling: bool
-)
+@export var internal_zone_path: NodePath
+@export var external_zone_path: NodePath
+@export var cycle_duration_sec: float = 5.0
+@export var auto_register_with_zones: bool = true
 
-enum AirlockState {
-	CLOSED_BOTH,  ## oboje dvere zatvorené, airlock je idle
-	OPEN_INSIDE,  ## otvorené vnútorné dvere
-	OPEN_OUTSIDE, ## otvorené vonkajšie dvere
-	CYCLING,      ## prebieha equalizácia/odtlakovanie – všetko zatvorené
-}
+enum AirlockState { IDLE, CYCLING }
 
-enum Direction {
-	FROM_INSIDE,  ## crew/vozidlo ide z interiéru von
-	FROM_OUTSIDE, ## crew/vozidlo ide zvonku dnu
-}
-
-## Režim airlocku – zatiaľ len infotext (crew / vehicle).
-@export var mode: StringName = &"crew"
-
-## Ako dlho trvá jeden cyklus (v sekundách).
-@export var cycle_duration_seconds: float = 10.0
-
-## Hooky do budúcna – spotreba resource počas cyklu.
-@export var uses_energy_per_cycle: float = 0.0
-@export var uses_oxygen_units_per_cycle: float = 0.0
-
-## Aktuálny stav airlocku.
-var _state: int = AirlockState.CLOSED_BOTH
-
-## Cieľ po skončení cyklu (inside→outside alebo naopak).
-var _pending_direction: int = Direction.FROM_INSIDE
-
-## Timer na meranie trvania cyklu.
-var _cycle_timer: Timer
-
-## Group name – aby sme airlocky vedeli nájsť cez get_nodes_in_group().
-const GROUP_AIRLOCKS: StringName = &"airlocks"
+var _state: AirlockState = AirlockState.IDLE
+var _internal_zone: PressurizedZone = null
+var _external_zone: PressurizedZone = null
 
 
 func _ready() -> void:
-	## Pri štarte:
-	## - pridá node do group "airlocks"
-	## - vytvorí Timer pre cyklus
-	## - pošle initial stav (closed_both)
-	add_to_group(GROUP_AIRLOCKS)
+	add_to_group("airlocks")
+	_resolve_zones()
 
-	_cycle_timer = Timer.new()
-	_cycle_timer.one_shot = true
-	add_child(_cycle_timer)
-	_cycle_timer.timeout.connect(_on_cycle_timer_timeout)
+	if auto_register_with_zones:
+		if _internal_zone != null:
+			_internal_zone.register_airlock(self)
+		if _external_zone != null:
+			_external_zone.register_airlock(self)
 
-	_emit_state_changed()
+	if _should_debug():
+		var internal_label: String = "null"
+		if _internal_zone != null:
+			internal_label = str(_internal_zone.zone_id)
+
+		var external_label: String = "null"
+		if _external_zone != null:
+			external_label = str(_external_zone.zone_id)
+
+		print("[Airlock] ready name=", name,
+			" internal_zone=", internal_label,
+			" external_zone=", external_label)
+
+
+func _resolve_zones() -> void:
+	if internal_zone_path != NodePath(""):
+		var n_in := get_node_or_null(internal_zone_path)
+		if n_in is PressurizedZone:
+			_internal_zone = n_in
+	if external_zone_path != NodePath(""):
+		var n_out := get_node_or_null(external_zone_path)
+		if n_out is PressurizedZone:
+			_external_zone = n_out
 
 
 func request_open_from_inside() -> void:
-	## API: crew/vozidlo chce ísť z interiéru → von.
-	## - Ak už sú vnútorné dvere otvorené, nerobíme nič.
-	## - Ak sú otvorené vonkajšie dvere, najprv ich "zavrieme".
-	## - Spustíme cyklus smerom von (FROM_INSIDE).
-	if _is_cycling():
-		return
-
-	if _state == AirlockState.OPEN_INSIDE:
-		return
-
-	if _state == AirlockState.OPEN_OUTSIDE:
-		_state = AirlockState.CLOSED_BOTH
-		_emit_state_changed()
-
-	_start_cycle(Direction.FROM_INSIDE)
+	_start_cycle("inside_to_outside")
 
 
 func request_open_from_outside() -> void:
-	## API: crew/vozidlo chce ísť zvonku → dnu.
-	## Logika je zrkadlová voči request_open_from_inside().
-	if _is_cycling():
+	_start_cycle("outside_to_inside")
+
+
+func _start_cycle(direction: String) -> void:
+	if _state == AirlockState.CYCLING:
+		if _should_debug():
+			print("[Airlock] ", name, " is already cycling, ignoring request ", direction)
 		return
 
-	if _state == AirlockState.OPEN_OUTSIDE:
-		return
-
-	if _state == AirlockState.OPEN_INSIDE:
-		_state = AirlockState.CLOSED_BOTH
-		_emit_state_changed()
-
-	_start_cycle(Direction.FROM_OUTSIDE)
-
-
-func is_passable_from_inside() -> bool:
-	## Hook pre pathfinding:
-	## True = cesta z interiéru cez airlock je práve možná.
-	return _state == AirlockState.OPEN_INSIDE
-
-
-func is_passable_from_outside() -> bool:
-	## Hook pre pathfinding:
-	## True = cesta zvonku cez airlock je práve možná.
-	return _state == AirlockState.OPEN_OUTSIDE
-
-
-func _is_cycling() -> bool:
-	## Pomocná funkcia: či práve prebieha cyklus.
-	return _state == AirlockState.CYCLING
-
-
-func _start_cycle(direction: int) -> void:
-	## Spustí nový cyklus:
-	## - nastaví stav na CYCLING,
-	## - uloží cieľový smer (inside→outside alebo outside→inside),
-	## - ak je cycle_duration_seconds <= 0, cyklus skončí okamžite,
-	## - inak spustí Timer.
 	_state = AirlockState.CYCLING
-	_pending_direction = direction
-	_emit_state_changed()
 
-	if cycle_duration_seconds <= 0.0:
-		_finish_cycle()
-	else:
-		_cycle_timer.start(cycle_duration_seconds)
+	if _should_debug():
+		print("[Airlock] cycle START name=", name, " dir=", direction)
 
+	# Notifikuj zóny – samotné straty rieši PressurizedZone
+	if _internal_zone != null:
+		_internal_zone.notify_airlock_cycle(direction)
+	if _external_zone != null:
+		_external_zone.notify_airlock_cycle(direction)
 
-func _on_cycle_timer_timeout() -> void:
-	## Callback z Timeru – cyklus skončil.
-	_finish_cycle()
-
-
-func _finish_cycle() -> void:
-	## Ukončí cyklus podľa uloženého smeru:
-	## - FROM_INSIDE → otvoríme vonkajšie dvere
-	## - FROM_OUTSIDE → otvoríme vnútorné dvere
-	## V tejto verzii zatiaľ len meníme stav a logujeme.
-	match _pending_direction:
-		Direction.FROM_INSIDE:
-			_state = AirlockState.OPEN_OUTSIDE
-		Direction.FROM_OUTSIDE:
-			_state = AirlockState.OPEN_INSIDE
-		_:
-			_state = AirlockState.CLOSED_BOTH
-
-	# TODO: tu neskôr:
-	# - odpísať energiu / oxygen_units z ResourceManageru
-	# - prípadne spawnúť eventy (chybné dvere, leak, atď.)
-
-	_emit_state_changed()
+	_run_cycle_timer(direction)
 
 
-func _emit_state_changed() -> void:
-	## Pošle signal a vypíše debug do konzoly.
-	var inside_open: bool = _state == AirlockState.OPEN_INSIDE
-	var outside_open: bool = _state == AirlockState.OPEN_OUTSIDE
-	var is_cycling: bool = _state == AirlockState.CYCLING
+func _run_cycle_timer(direction: String) -> void:
+	await get_tree().create_timer(max(0.1, cycle_duration_sec)).timeout
 
-	airlock_state_changed.emit(self, _state, inside_open, outside_open, is_cycling)
-
-	print(
-		"[Airlock] state -> ",
-		_state_to_string(_state),
-		" | inside_open=",
-		str(inside_open),
-		" outside_open=",
-		str(outside_open),
-		" cycling=",
-		str(is_cycling)
-	)
+	_state = AirlockState.IDLE
+	if _should_debug():
+		print("[Airlock] cycle END   name=", name, " dir=", direction)
 
 
-func _state_to_string(state: int) -> String:
-	## Pomocná funkcia pre čitateľný log.
-	match state:
-		AirlockState.CLOSED_BOTH:
-			return "CLOSED_BOTH"
-		AirlockState.OPEN_INSIDE:
-			return "OPEN_INSIDE"
-		AirlockState.OPEN_OUTSIDE:
-			return "OPEN_OUTSIDE"
-		AirlockState.CYCLING:
-			return "CYCLING"
-		_:
-			return "UNKNOWN"
+func _should_debug() -> bool:
+	return DebugFlags.MASTER_DEBUG

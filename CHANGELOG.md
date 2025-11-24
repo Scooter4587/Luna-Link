@@ -2,6 +2,27 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.6] – 2025-11-25
+Added
+DebugFlags.gd – centrálna debug konfigurácia s MASTER_DEBUG a samostatnými prepínačmi:
+DEBUG_STARTING_RESOURCES, DEBUG_AUTOTEST_AIRLOCK, DEBUG_BM_EXTRACTOR_LOGS,
+DEBUG_ENERGY_SYSTEM, DEBUG_PRODUCTION_SYSTEM, DEBUG_CONSTRUCTION,
+DEBUG_PLACEMENT, DEBUG_LIFE_SUPPORT, DEBUG_PRESSURIZED_ZONES.
+Základné debug logy v EnergySystem a ProductionSystem – pri štarte sa vypíše napojenie na Clock.hour_changed a pri ticku sa loguje hodinový prepočet energie (net + aktuálny stav).
+
+Changed
+EnergySystem a ProductionSystem mierne upratané (typovanie premenných, odstránené konfliktné class_name), aby išli korektne ako autoload singletony s voliteľným debug logovaním cez DebugFlags.
+BMExtractor loguje svoj cfg a úspešné nalinkovanie na ResourceNode (id/názov/path), s možnosťou vypnúť logy cez DEBUG_BM_EXTRACTOR_LOGS.
+
+Fixed
+Opravené GDScript chyby okolo DebugFlags (chýbajúce DEBUG_* konstanty, tieňovanie globálnych/autoload názvov).
+BuildMode + GhostService + PlacementService vrátené do stabilnej verzie po experimentoch s debugom –
+foundation drag, extractor ghost a build pipeline znovu fungujú rovnako ako v 0.0.58 (bez rozbitia ghostu).
+
+Notes
+Debug infraštruktúra je pripravená do budúcna – nie všetky DEBUG_* flagy sú aktuálne využité, ale slúžia ako „zapínateľné okruhy“ pre ďalšie survival/energy/airlock systémy.
+Next Crew and crew needs
+
 [0.0.58] – 2025-11-24
 Added
 Backend pre survival pipeline cez GameState a hourly behaviors.

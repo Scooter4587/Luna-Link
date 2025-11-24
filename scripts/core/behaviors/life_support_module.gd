@@ -1,87 +1,123 @@
 extends Node
 class_name LifeSupportModule
-
 ## LifeSupportModule
-## - pripnutý na budovu typu oxygen_generator_small
-## - každú hernú hodinu:
-##   * ak je budova powered,
-##   * pokúsi sa minúť water_per_hour z resource "water"
-##   * za úspech pridá oxygen_per_hour do:
-##       - PressurizedZone (ak je zadaná),
-##       - inak do globálneho resource "oxygen_units".
+## - Reprezentuje jeden životný modul (air/atmo) v rámci zóny.
+## - Spotrebúva vodu + kyslík z GameState (State).
+## - Dodáva kyslík a tlak do PressurizedZone.
+## - Spotrebu energie reportuje cez EnergySystem (energy_modules).
 
-@export var water_per_hour: float = 1.0
-@export var oxygen_per_hour: float = 5.0
+@export var zone_path: NodePath = NodePath("")
+@export var enabled: bool = true
 
-## Ak je vyplnený, LifeSupportModule pošle kyslík do konkrétnej zóny.
-@export var zone_path: NodePath
+@export var crew_capacity: int = 4
+@export var crew_present: int = 4
+
+@export var energy_consumption_per_hour: float = 5.0
+@export var o2_units_per_crew_per_hour: float = 1.0
+@export var water_per_crew_per_hour: float = 0.5
+
+@export var pressure_support_kpa_per_hour: float = 20.0
+@export var oxygen_zone_gain_per_minute: float = 0.01
+
+var _zone: PressurizedZone = null
+
 
 func _ready() -> void:
-	if Engine.is_editor_hint():
-		return
-	add_to_group("behavior_hourly")
+	# Pre EnergySystem + ProductionSystem (production zatiaľ nevyužíva LS)
+	add_to_group("energy_modules")
+	add_to_group("production_modules")
 
-func _on_behavior_hour_tick(hours: float) -> void:
-	if Engine.is_editor_hint():
-		return
+	_resolve_zone()
+	if _zone != null:
+		_zone.register_life_support_module(self)
 
-	if not _is_building_powered():
-		return
+	if _should_debug():
+		var zone_label: String = "null"
+		if _zone != null:
+			zone_label = str(_zone.zone_id)
+		print("[LifeSupportModule] ready name=", name,
+			" zone=", zone_label,
+			" crew_present=", crew_present)
 
-	var game_state: Variant = _get_game_state()
-	if game_state == null:
-		return
 
-	var factor: float = max(hours, 0.0)
-	if factor <= 0.0:
-		return
+func _resolve_zone() -> void:
+	if zone_path != NodePath(""):
+		var n := get_node_or_null(zone_path)
+		if n is PressurizedZone:
+			_zone = n
+			return
 
-	var water_need: float = water_per_hour * factor
-	if water_need <= 0.0:
-		return
+	var cur: Node = get_parent()
+	while cur != null and _zone == null:
+		if cur is PressurizedZone:
+			_zone = cur
+			break
+		cur = cur.get_parent()
 
-	# Ak nemáme dosť vody, modul nič nerobí.
-	if not game_state.can_spend(&"water", water_need):
-		return
 
-	# Spotrebuj vodu.
-	game_state.spend_resource(&"water", water_need)
+## EnergySystem hook: kladné = výroba, záporné = spotreba
+func get_energy_delta_per_hour() -> float:
+	if not enabled or crew_present <= 0:
+		return 0.0
+	var total_energy: float = energy_consumption_per_hour
+	return -total_energy
 
-	var oxygen_gain: float = oxygen_per_hour * factor
-	if oxygen_gain <= 0.0:
-		return
 
-	# Ak máme zónu, pošleme kyslík tam. Inak do globálneho oxygen_units.
-	var zone: Variant = _get_zone()
-	if zone != null and zone.has_method("add_oxygen_units"):
-		zone.add_oxygen_units(oxygen_gain)
-	else:
-		game_state.add_resource(&"oxygen_units", oxygen_gain)
+## ProductionSystem hook – zatiaľ nič, aby nebol double-count
+func get_production_per_hour() -> Dictionary:
+	return {}
 
-func _get_game_state():
-	var root: Node = get_tree().root
-	if root == null:
-		return null
-	if root.has_node("GameState"):
-		return root.get_node("GameState")
-	push_warning("[LifeSupportModule] GameState node not found at /root/GameState.")
-	return null
 
-func _get_zone():
-	if zone_path.is_empty():
-		return null
-	var host: Node = get_parent()
-	if host == null:
-		return null
-	return host.get_node_or_null(zone_path)
+## PressurizedZone hook:
+## - volá sa raz za hernú minútu
+## - vracia zmenu pre zónu:
+##     { "oxygen_delta": float, "pressure_delta": float }
+func get_zone_effect_per_minute() -> Dictionary:
+	var result: Dictionary = {
+		"oxygen_delta": 0.0,
+		"pressure_delta": 0.0,
+	}
 
-func _is_building_powered() -> bool:
-	var host: Node = get_parent()
-	if host == null:
-		return true
-	if not host.has_method("get"):
-		return true
-	var value: Variant = host.get("is_powered")
-	if value is bool:
-		return value
-	return true
+	if not enabled or crew_present <= 0:
+		return result
+
+	if typeof(State) == TYPE_NIL:
+		return result
+
+	var o2_per_hour: float = o2_units_per_crew_per_hour * float(crew_present)
+	var water_per_hour: float = water_per_crew_per_hour * float(crew_present)
+
+	var o2_per_min: float = o2_per_hour / 60.0
+	var water_per_min: float = water_per_hour / 60.0
+
+	var cur_o2: float = State.get_resource(&"oxygen_units")
+	var cur_water: float = State.get_resource(&"water")
+
+	var can_run: bool = (cur_o2 >= o2_per_min and cur_water >= water_per_min)
+
+	if not can_run:
+		if _should_debug():
+			print("[LifeSupportModule] insufficient resources for life support in ", name,
+				" (o2=", cur_o2, " water=", cur_water,
+				" need/min=", o2_per_min, "/", water_per_min, ")")
+		return result
+
+	# Zožereme resource z GameState
+	State.add_resource(&"oxygen_units", -o2_per_min)
+	State.add_resource(&"water", -water_per_min)
+
+	# Efekt na zónu
+	result["oxygen_delta"] = oxygen_zone_gain_per_minute
+	result["pressure_delta"] = pressure_support_kpa_per_hour / 60.0
+
+	if _should_debug():
+		print("[LifeSupportModule] tick ", name,
+			" used o2=", o2_per_min, " water=", water_per_min,
+			" -> zone ΔO2=", result["oxygen_delta"],
+			" ΔP=", result["pressure_delta"])
+
+	return result
+
+
+func _should_debug() -> bool:
+	return DebugFlags.MASTER_DEBUG

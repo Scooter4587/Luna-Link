@@ -3,6 +3,11 @@ class_name GameState
 ## GameState:
 ## Drží runtime hodnoty všetkých globálnych zdrojov (top bar) podľa ResourceCfg
 ## a poskytuje API na pridávanie, míňanie a sledovanie zmien cez signal resource_changed.
+##
+## Dôležité:
+## - GameState je "source of truth" pre globálne resourcy.
+## - Všetky zmeny automaticky zrkadlí do ResourceManageru, aby
+##   ProductionHourly / staršie systémy videli rovnaké hodnoty.
 
 signal resource_changed(id: StringName, new_value: float, delta: float)
 
@@ -21,7 +26,7 @@ func _ready() -> void:
 
 ## Skopíruje všetky hodnoty z GameState.resources do ResourceManageru.
 ## - Zatiaľ je to len "mirror".
-## - Neskôr spravíme opačný smer (ResourceManager ako hlavný zdroj pravdy).
+## - Neskôr spravíme opačný smer, ak by sme prešli na ResourceManager ako hlavný zdroj pravdy.
 func _sync_resources_to_resource_manager() -> void:
 	for resource_id in resources.keys():
 		var amount: float = resources[resource_id]
@@ -62,7 +67,7 @@ func has_resource(id: Variant) -> bool:
 
 # -- Verejné API: zapisovanie -------------------------------------------------
 
-## Nastaví resource na presnú hodnotu (clamp + signál).
+## Nastaví resource na presnú hodnotu (clamp + signál + mirror do ResourceManager).
 func set_resource(id: Variant, value: float) -> void:
 	var key: StringName = StringName(id)
 	if not has_resource(key):
@@ -76,9 +81,14 @@ func set_resource(id: Variant, value: float) -> void:
 		return
 
 	resources[key] = new_value
+
+	# Mirror do ResourceManager – aby všetky systémy videli rovnakú hodnotu.
+	ResourceManager.set_amount(key, new_value)
+
 	emit_signal("resource_changed", key, new_value, new_value - old_value)
 
 ## Pridá alebo uberie hodnotu (amount môže byť záporné).
+## Uplatní clamp + mirror do ResourceManager.
 func add_resource(id: Variant, amount: float) -> void:
 	if amount == 0.0:
 		return
@@ -103,6 +113,10 @@ func add_resource(id: Variant, amount: float) -> void:
 		return
 
 	resources[key] = new_value
+
+	# Mirror do ResourceManager.
+	ResourceManager.set_amount(key, new_value)
+
 	emit_signal("resource_changed", key, new_value, new_value - old_value)
 
 ## Vráti, či si môžeme dovoliť minúť dané množstvo daného resource.

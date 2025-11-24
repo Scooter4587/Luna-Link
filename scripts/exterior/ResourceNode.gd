@@ -36,10 +36,11 @@ func _ready() -> void:
 
 	var display_name: String = _def.get("display_name", str(node_id))
 
-	print("[ResourceNode] ready id=", node_id,
-		" name=", display_name,
-		" resource=", resource_id,
-		" out/h=", output_per_hour)
+	if DebugFlags.MASTER_DEBUG and DebugFlags.DEBUG_BM_EXTRACTOR_LOGS:
+		print("[ResourceNode] ready id=", node_id,
+			" name=", display_name,
+			" resource=", resource_id,
+			" out/h=", output_per_hour)
 
 
 func get_resource_id() -> StringName:
