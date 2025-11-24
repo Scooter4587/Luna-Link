@@ -3,25 +3,41 @@ class_name BuildingsCfg
 
 ## Data-driven konfigurácia všetkých building typov v hre.
 ##
-## Kľúče v definícii jednej budovy:
-## - id: String                    # interný identifikátor
-## - display_name: String          # text do UI
-## - domain: String                # "exterior" | "interior"
-## - footprint_type: String        # "fixed" | "rect_drag" | "path"
-## - anchor_type: String           # "free" | "on_resource_node" | "on_foundation" | "inside_room" ...
-## - size_cells: Vector2i          # základný tile footprint (môže byť 1x1 pre rect_drag)
-## - pivot_cell: Vector2i          # ukotvenie v rámci footprintu
-## - placement_rules: Array[String]# mená pravidiel, ktoré rieši PlacementService
+## POVINNÉ KĽÚČE (per building):
+## - id: String                 # interný identifikátor (zvyčajne rovnaký ako dictionary kľúč)
+## - display_name: String       # text do UI
+## - domain: String             # "exterior" | "interior"
+## - category: String           # "foundation" | "exterior" | "interior" | "object"
+## - footprint_type: String     # "fixed" | "rect_drag" | "path"
+## - anchor_type: String        # "free" | "on_resource_node" | "on_foundation" | "inside_hub" | "adjacent_foundation" | ...
+## - size_cells: Vector2i       # základný tile footprint (alebo unit tile pre rect_drag/path)
+## - pivot_cell: Vector2i       # ukotvenie v rámci footprintu
+## - placement_rules: Array     # mená pravidiel pre PlacementService (String)
 ##
-## - time_mode: String             # "game_hours" | "game_minutes" | "realtime_seconds"
-## - build_time_per_tile: float    # voliteľné – čas / tile (v jednotkách podľa time_mode)
-## - build_time_total: float       # voliteľné – fixný čas (v jednotkách podľa time_mode)
+## VOLITEĽNÉ:
+## - min_size_cells: Vector2i   # minimálny rect size pre rect_drag (napr. 4x4)
+## - max_size_cells: Vector2i   # maximálny rect size, ak chceme limit
+## - min_clear_radius: int      # minimálna vzdialenosť od iných budov (v tiles)
 ##
-## - cost_per_tile: Dictionary     # voliteľné – resource_id -> množstvo / tile
-## - cost: Dictionary              # voliteľné – fixná cena (resource_id -> množstvo)
+## - time_mode: String          # "game_hours" | "game_minutes" | "realtime_seconds"
+## - build_time_per_tile: float # čas / tile (pri rect_drag)
+## - build_time_total: float    # fixný čas
 ##
-## - behaviors: Array[Dictionary]  # zoznam behavior modulov (type + config)
-## - min_clear_radius: int         # voliteľné – minimálna vzdialenosť od iných budov (v tiles)
+## - cost_per_tile: Dictionary  # resource_id (StringName) -> množstvo / tile
+## - cost: Dictionary           # resource_id (StringName) -> fixná cena
+##
+## - behaviors: Array[Dictionary] # zoznam behavior modulov (type + config Dictionary)
+##   # Príklad:
+##   # "behaviors": [
+##   #   { "type": "PowerProducer", "config": { "production_per_hour": 10.0 } },
+##   #   { "type": "PowerConsumer", "config": { "consumption_per_hour": 5.0, "critical": true } },
+##   # ]
+##
+## - ui_group: String           # skupina pre build UI (napr. "foundation", "exterior_power", "interior_room")
+## - ui_icon_id: String         # ID ikonky / placeholder textúry (môže byť rovnaké ako id)
+## - max_instances: int         # globálny limit inštancií (napr. 1 pre hub_core)
+## - required_objects: Array    # zoznam object id, ktoré roomka neskôr vyžaduje (napr. ["bunk_bed"])
+
 
 const BUILDINGS: Dictionary = {
 	# -------------------------------------------------------------------------
@@ -31,6 +47,7 @@ const BUILDINGS: Dictionary = {
 		"id": "foundation_basic",
 		"display_name": "Basic Foundation",
 		"domain": "exterior",
+		"category": "foundation",
 		"footprint_type": "rect_drag",
 		"anchor_type": "free",
 		"size_cells": Vector2i(1, 1),
@@ -41,11 +58,9 @@ const BUILDINGS: Dictionary = {
 		],
 		"min_clear_radius": 6,
 
-		# Časovanie – game_hours, per-tile (rovnaké ako predtým BuildCfg.FOUNDATION_HOURS_PER_TILE)
 		"time_mode": "game_hours",
 		"build_time_per_tile": 0.05,  # 20 tiles ≈ 1 herná hodina
 
-		# Cena – per tile
 		"cost_per_tile": {
 			&"building_materials": 5.0,
 		},
@@ -53,51 +68,56 @@ const BUILDINGS: Dictionary = {
 		"behaviors": [
 			# foundation zatiaľ bez špeciálneho správania
 		],
+
+		"ui_group": "foundation",
+		"ui_icon_id": "foundation_basic",
 	},
 
 	# -------------------------------------------------------------------------
-	# BM EXTRACTOR – fixný footprint, fixná cena aj čas (3h v game_minutes)
+	# LANDING PAD BASIC – prvý landing point na mesiaci
 	# -------------------------------------------------------------------------
-	"bm_extractor": {
-		"id": "bm_extractor",
-		"display_name": "BM Extractor",
+	"landing_pad_basic": {
+		"id": "landing_pad_basic",
+		"display_name": "Landing Pad (Basic)",
 		"domain": "exterior",
+		"category": "exterior",
 		"footprint_type": "fixed",
-		"anchor_type": "on_resource_node",
-		"size_cells": Vector2i(2, 2),  # placeholder, upresníme neskôr
-		"pivot_cell": Vector2i(0, 1),  # placeholder, podľa grafiky
+		"anchor_type": "free",  # môže stáť samostatne, bez foundation
+		"size_cells": Vector2i(6, 6),   # placeholder
+		"pivot_cell": Vector2i(3, 3),   # stred, placeholder
+
 		"placement_rules": [
 			"FreeArea",
-			"OnResourceNode",
-			"NoExtractorPresent",
 			"MinClearRadius",
 		],
-		"min_clear_radius": 6,
+		"min_clear_radius": 8,
 
-		# Časovanie – 3 herné HODINY v MINÚTACH (180 min)
-		"time_mode": "game_minutes",
-		"build_time_total": 3.0 * 60.0,
+		"time_mode": "game_hours",
+		"build_time_total": 4.0,  # placeholder
 
-		# Cena – fixná
 		"cost": {
-			&"building_materials": 100.0,
-			&"equipment": 20.0,
+			&"building_materials": 200.0,
+			&"equipment": 40.0,
 		},
 
 		"behaviors": [
-			# TODO: doplniť v 0.0.45 (ProductionHourly, PowerConsumer)
+			# neskôr: LandingZone / zásielky zo Zeme / crew arrival
 		],
+
+		"ui_group": "exterior_logistics",
+		"ui_icon_id": "landing_pad_basic",
 	},
 
 	# -------------------------------------------------------------------------
-	# SOLAR PANEL – placeholder, fixed footprint + fixný čas
+	# SOLAR PANEL ( pôvodný placeholder ) – nechávame kvôli kompatibilite
 	# -------------------------------------------------------------------------
 	"solar_panel": {
 		"id": "solar_panel",
-		"display_name": "Solar Panel",
+		"display_name": "Solar Panel (Legacy)",
 		"domain": "exterior",
+		"category": "exterior",
 		"footprint_type": "fixed",
-		"anchor_type": "free", # neskôr možno "on_foundation"
+		"anchor_type": "free",
 		"size_cells": Vector2i(2, 1),  # placeholder
 		"pivot_cell": Vector2i(0, 0),  # placeholder
 		"placement_rules": [
@@ -108,21 +128,243 @@ const BUILDINGS: Dictionary = {
 		"build_time_total": 2.0,  # placeholder
 
 		"cost": {
-			# TODO: doplniť reálne hodnoty
+			# legacy / dev-only, necháme prázdne
 		},
 
 		"behaviors": [
-			# TODO: PowerProducer v 0.0.45+
+			# dev-only, nepoužívame v survival sete
 		],
+
+		"ui_group": "exterior_power",
+		"ui_icon_id": "solar_panel",
 	},
 
 	# -------------------------------------------------------------------------
-	# POWER CABLE – path, zatiaľ fixný čas (neskôr per-tile podľa dĺžky pathu)
+	# SOLAR PANEL BASIC – survival verzia, bez foundation
+	# -------------------------------------------------------------------------
+	"solar_panel_basic": {
+		"id": "solar_panel_basic",
+		"display_name": "Solar Panel (Basic)",
+		"domain": "exterior",
+		"category": "exterior",
+		"footprint_type": "fixed",
+		"anchor_type": "free",  # podľa tvojho komentára: nepotrebuje foundation
+		"size_cells": Vector2i(2, 2),   # placeholder
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"FreeArea",
+		],
+
+		"time_mode": "game_hours",
+		"build_time_total": 1.5,  # placeholder
+
+		"cost": {
+			&"building_materials": 25.0,
+			&"equipment": 5.0,
+		},
+
+		"behaviors": [
+			{
+				"type": "PowerProducer",
+				"config": {
+					"production_per_hour": 10.0,  # placeholder, neskôr vybalansujeme
+				},
+			},
+		],
+
+		"ui_group": "exterior_power",
+		"ui_icon_id": "solar_panel_basic",
+	},
+
+	# -------------------------------------------------------------------------
+	# BATTERY SMALL – exterior batéria, ideálne na foundation
+	# -------------------------------------------------------------------------
+	"battery_small": {
+		"id": "battery_small",
+		"display_name": "Battery (Small)",
+		"domain": "exterior",
+		"category": "exterior",
+		"footprint_type": "fixed",
+		"anchor_type": "on_foundation",  # držme ju pri hube / na stabilnej ploche
+		"size_cells": Vector2i(2, 1),    # placeholder
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"OnFoundation",
+			"FreeArea",
+		],
+
+		"time_mode": "game_hours",
+		"build_time_total": 1.0,
+
+		"cost": {
+			&"building_materials": 30.0,
+			&"equipment": 10.0,
+		},
+
+		"behaviors": [
+			{
+				"type": "PowerStorage",
+				"config": {
+					"capacity": 100.0,
+					"start_charge": 0.0,  # neskôr mapneme na current_charge v node
+				},
+			},
+		],
+
+		"ui_group": "exterior_power",
+		"ui_icon_id": "battery_small",
+	},
+
+	# -------------------------------------------------------------------------
+	# OXYGEN GENERATOR SMALL – ext. generátor O2, musí byť pri foundation
+	# -------------------------------------------------------------------------
+	"oxygen_generator_small": {
+		"id": "oxygen_generator_small",
+		"display_name": "Oxygen Generator (Small)",
+		"domain": "exterior",
+		"category": "exterior",
+		"footprint_type": "fixed",
+		"anchor_type": "adjacent_foundation",  # špecifický anchor: vedľa foundation
+		"size_cells": Vector2i(2, 2),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"AdjacentToFoundation",  # budúca PlacementService logika
+			"FreeArea",
+		],
+
+		"time_mode": "game_hours",
+		"build_time_total": 2.0,
+
+		"cost": {
+			&"building_materials": 40.0,
+			&"equipment": 15.0,
+		},
+
+		"behaviors": [
+			{
+				"type": "PowerConsumer",
+				"config": {
+					"consumption_per_hour": 5.0,
+					"critical": true,
+				},
+			},
+			{
+				"type": "ProductionHourly",
+				"config": {
+					"input_resource_id": &"water",
+					"input_per_hour": 1.0,
+					"output_resource_id": &"oxygen_units",
+					"output_per_hour": 2.0,
+					"require_power": true,
+					"require_full_input": true,
+				},
+			},
+		],
+
+		"ui_group": "exterior_life_support",
+		"ui_icon_id": "oxygen_generator_small",
+	},
+
+	# -------------------------------------------------------------------------
+	# ICE MINE BASIC – ext. ťažba ice na resource node
+	# -------------------------------------------------------------------------
+	"ice_mine_basic": {
+		"id": "ice_mine_basic",
+		"display_name": "Ice Mine (Basic)",
+		"domain": "exterior",
+		"category": "exterior",
+		"footprint_type": "fixed",
+		"anchor_type": "on_resource_node",
+		"size_cells": Vector2i(2, 2),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"OnResourceNode",
+			"NoExtractorPresent",
+			"MinClearRadius",
+		],
+		"min_clear_radius": 4,
+
+		"time_mode": "game_hours",
+		"build_time_total": 3.0,
+
+		"cost": {
+			&"building_materials": 60.0,
+			&"equipment": 20.0,
+		},
+
+		"behaviors": [
+			{
+				"type": "PowerConsumer",
+				"config": {
+					"consumption_per_hour": 4.0,
+					"critical": false,
+				},
+			},
+			{
+				"type": "ProductionHourly",
+				"config": {
+					"input_resource_id": &"",          # ťažba z terénu
+					"input_per_hour": 0.0,
+					"output_resource_id": &"ice",
+					"output_per_hour": 5.0,           # placeholder
+					"require_power": true,
+					"require_full_input": false,
+				},
+			},
+		],
+
+		"ui_group": "exterior_mining",
+		"ui_icon_id": "ice_mine_basic",
+	},
+
+	# -------------------------------------------------------------------------
+	# BM EXTRACTOR – zatiaľ ponechávame ako mining building mimo survival setu
+	# -------------------------------------------------------------------------
+	"bm_extractor": {
+		"id": "bm_extractor",
+		"display_name": "BM Extractor",
+		"domain": "exterior",
+		"category": "exterior",
+		"footprint_type": "fixed",
+		"anchor_type": "on_resource_node",
+		"size_cells": Vector2i(2, 2),  # placeholder
+		"pivot_cell": Vector2i(0, 1),  # placeholder
+		"placement_rules": [
+			"FreeArea",
+			"OnResourceNode",
+			"NoExtractorPresent",
+			"MinClearRadius",
+		],
+		"min_clear_radius": 6,
+
+		"time_mode": "game_minutes",
+		"build_time_total": 3.0 * 60.0,  # 3 herné hodiny v minútach
+
+		"cost": {
+			&"building_materials": 100.0,
+			&"equipment": 20.0,
+		},
+
+		"behaviors": [
+			# TODO: ProductionHourly + PowerConsumer, keď budeme chcieť BM pipeline
+		],
+
+		"ui_group": "exterior_mining",
+		"ui_icon_id": "bm_extractor",
+	},
+
+	# -------------------------------------------------------------------------
+	# POWER CABLE – path, veľmi rýchla stavba
 	# -------------------------------------------------------------------------
 	"power_cable": {
 		"id": "power_cable",
 		"display_name": "Power Cable",
 		"domain": "exterior",
+		"category": "exterior",
 		"footprint_type": "path",
 		"anchor_type": "free",
 		"size_cells": Vector2i(1, 1),
@@ -135,24 +377,323 @@ const BUILDINGS: Dictionary = {
 		"build_time_total": 0.1,  # placeholder – veľmi rýchle
 
 		"cost": {
-			# TODO: doplniť
+			# TODO: doplniť podľa balancing
 		},
 
 		"behaviors": [
-			# TODO: PowerLink / network behavior v 0.0.5+
+			# TODO: PowerLink / network behavior
 		],
+
+		"ui_group": "exterior_power",
+		"ui_icon_id": "power_cable",
 	},
 
 	# -------------------------------------------------------------------------
-	# BASIC ROOM – interiér, rect_drag, per-tile cost/čas
+	# HUB CORE – srdce hubu, interiér, jedinečný (max 1)
+	# -------------------------------------------------------------------------
+	"hub_core": {
+		"id": "hub_core",
+		"display_name": "Hub Core",
+		"domain": "interior",
+		"category": "interior",
+		"footprint_type": "fixed",
+		"anchor_type": "on_foundation",
+		"size_cells": Vector2i(6, 6),  # placeholder
+		"pivot_cell": Vector2i(3, 3),
+
+		"placement_rules": [
+			"OnFoundation",
+			"FreeArea",
+			"UniqueGlobal",  # PlacementService: povoliť max 1 v hre
+		],
+
+		"time_mode": "game_hours",
+		"build_time_total": 4.0,
+
+		"cost": {
+			&"building_materials": 150.0,
+			&"equipment": 40.0,
+		},
+
+		"behaviors": [
+			{
+				"type": "PowerConsumer",
+				"config": {
+					"consumption_per_hour": 5.0,
+					"critical": true,
+				},
+			},
+			{
+				"type": "HubCore",
+				"config": {
+					# neskôr: bounds interiéru, základný life support atď.
+				},
+			},
+		],
+
+		"ui_group": "interior_core",
+		"ui_icon_id": "hub_core",
+		"max_instances": 1,
+	},
+
+	# -------------------------------------------------------------------------
+	# AIRLOCK BASIC – prechod medzi exteriérom a interiérom
+	# -------------------------------------------------------------------------
+	"airlock_basic": {
+		"id": "airlock_basic",
+		"display_name": "Airlock (Basic)",
+		"domain": "interior",
+		"category": "interior",
+		"footprint_type": "fixed",
+		"anchor_type": "at_hub_edge",  # špecifický anchor: na okraji hub_core
+		"size_cells": Vector2i(2, 2),
+		"pivot_cell": Vector2i(1, 1),
+
+		"placement_rules": [
+			"OnFoundation",
+			"AtHubEdge",
+		],
+
+		"time_mode": "game_hours",
+		"build_time_total": 1.5,
+
+		"cost": {
+			&"building_materials": 40.0,
+			&"equipment": 15.0,
+		},
+
+		"behaviors": [
+			{
+				"type": "PowerConsumer",
+				"config": {
+					"consumption_per_hour": 1.0,
+					"critical": true,
+				},
+			},
+			{
+				"type": "Airlock",
+				"config": {
+					# neskôr: dve dvere, pravidlo "len jedny otvorené"
+				},
+			},
+		],
+
+		"ui_group": "interior_access",
+		"ui_icon_id": "airlock_basic",
+	},
+
+	# -------------------------------------------------------------------------
+	# CREW QUARTERS SMALL – interiérová miestnosť, rect_drag
+	# -------------------------------------------------------------------------
+	"crew_quarters_small": {
+		"id": "crew_quarters_small",
+		"display_name": "Crew Quarters (Small)",
+		"domain": "interior",
+		"category": "interior",
+		"footprint_type": "rect_drag",
+		"anchor_type": "inside_hub",   # musí byť vnútri hub_core bounds
+		"size_cells": Vector2i(1, 1),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"InsideHubBounds",
+			"OnInteriorFloor",
+			"NoOverlapInteriorRoom",
+		],
+
+		"min_size_cells": Vector2i(4, 4),
+
+		"time_mode": "game_hours",
+		"build_time_per_tile": 0.10,
+
+		"cost_per_tile": {
+			&"building_materials": 3.0,
+		},
+
+		"behaviors": [
+			{
+				"type": "PowerConsumer",
+				"config": {
+					"consumption_per_hour": 1.0,
+					"critical": false,
+				},
+			},
+			{
+				"type": "CrewCapacity",
+				"config": {
+					"base_capacity": 4,  # placeholder – neskôr naviažeme na objekty (bunks)
+				},
+			},
+		],
+
+		"required_objects": [
+			"bunk_bed",  # budúci object typ
+		],
+
+		"ui_group": "interior_room",
+		"ui_icon_id": "crew_quarters_small",
+	},
+
+	# -------------------------------------------------------------------------
+	# MESS HALL SMALL – interiérová miestnosť pre stravovanie
+	# -------------------------------------------------------------------------
+	"mess_hall_small": {
+		"id": "mess_hall_small",
+		"display_name": "Mess Hall (Small)",
+		"domain": "interior",
+		"category": "interior",
+		"footprint_type": "rect_drag",
+		"anchor_type": "inside_hub",
+		"size_cells": Vector2i(1, 1),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"InsideHubBounds",
+			"OnInteriorFloor",
+			"NoOverlapInteriorRoom",
+		],
+
+		"min_size_cells": Vector2i(4, 4),
+
+		"time_mode": "game_hours",
+		"build_time_per_tile": 0.10,
+
+		"cost_per_tile": {
+			&"building_materials": 4.0,
+		},
+
+		"behaviors": [
+			{
+				"type": "PowerConsumer",
+				"config": {
+					"consumption_per_hour": 1.5,
+					"critical": false,
+				},
+			},
+			{
+				"type": "CrewNeeds",
+				"config": {
+					# neskôr: vplyv na hunger / happiness
+				},
+			},
+		],
+
+		"required_objects": [
+			"table",
+			"chair",
+		],
+
+		"ui_group": "interior_room",
+		"ui_icon_id": "mess_hall_small",
+	},
+
+	# -------------------------------------------------------------------------
+	# WAREHOUSE SMALL – interiérový sklad
+	# -------------------------------------------------------------------------
+	"warehouse_small": {
+		"id": "warehouse_small",
+		"display_name": "Warehouse (Small)",
+		"domain": "interior",
+		"category": "interior",
+		"footprint_type": "rect_drag",
+		"anchor_type": "inside_hub",
+		"size_cells": Vector2i(1, 1),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"InsideHubBounds",
+			"OnInteriorFloor",
+			"NoOverlapInteriorRoom",
+		],
+
+		"min_size_cells": Vector2i(4, 4),
+
+		"time_mode": "game_hours",
+		"build_time_per_tile": 0.08,
+
+		"cost_per_tile": {
+			&"building_materials": 3.0,
+		},
+
+		"behaviors": [
+			{
+				"type": "Storage",
+				"config": {
+					"capacity": 200.0,
+					# neskôr špecifikujeme typy resource, ktoré môže držať
+				},
+			},
+		],
+
+		"ui_group": "interior_room",
+		"ui_icon_id": "warehouse_small",
+	},
+
+	# -------------------------------------------------------------------------
+	# HYDROPONICS BASIC – interiérová produkcia jedla z vody
+	# -------------------------------------------------------------------------
+	"hydroponics_basic": {
+		"id": "hydroponics_basic",
+		"display_name": "Hydroponics (Basic)",
+		"domain": "interior",
+		"category": "interior",
+		"footprint_type": "rect_drag",
+		"anchor_type": "inside_hub",
+		"size_cells": Vector2i(1, 1),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"InsideHubBounds",
+			"OnInteriorFloor",
+			"NoOverlapInteriorRoom",
+		],
+
+		"min_size_cells": Vector2i(4, 4),
+
+		"time_mode": "game_hours",
+		"build_time_per_tile": 0.12,
+
+		"cost_per_tile": {
+			&"building_materials": 4.0,
+			&"equipment": 1.0,
+		},
+
+		"behaviors": [
+			{
+				"type": "PowerConsumer",
+				"config": {
+					"consumption_per_hour": 3.0,
+					"critical": false,
+				},
+			},
+			{
+				"type": "ProductionHourly",
+				"config": {
+					"input_resource_id": &"water",
+					"input_per_hour": 1.0,
+					"output_resource_id": &"food",
+					"output_per_hour": 2.0,
+					"require_power": true,
+					"require_full_input": true,
+				},
+			},
+		],
+
+		"ui_group": "interior_room",
+		"ui_icon_id": "hydroponics_basic",
+	},
+
+	# -------------------------------------------------------------------------
+	# BASIC ROOM – pôvodný generic interiér (môže zostať ako dev / sandbox)
 	# -------------------------------------------------------------------------
 	"room_basic": {
 		"id": "room_basic",
 		"display_name": "Basic Room",
 		"domain": "interior",
+		"category": "interior",
 		"footprint_type": "rect_drag",
 		"anchor_type": "on_foundation",
-		"size_cells": Vector2i(1, 1),  # unit tile pre rect_drag
+		"size_cells": Vector2i(1, 1),
 		"pivot_cell": Vector2i(0, 0),
 		"placement_rules": [
 			"OnFoundation",
@@ -160,15 +701,18 @@ const BUILDINGS: Dictionary = {
 		],
 
 		"time_mode": "game_hours",
-		"build_time_per_tile": 0.10,  # placeholder – 10 tiles ≈ 1h
+		"build_time_per_tile": 0.10,
 
 		"cost_per_tile": {
-			# TODO: reálne hodnoty (napr. BM + Equipment per tile)
+			# dev-only placeholder
 		},
 
 		"behaviors": [
-			# TODO: room-level behavior (life support, comfort, ...)
+			# dev / sandbox room
 		],
+
+		"ui_group": "interior_room",
+		"ui_icon_id": "room_basic",
 	},
 }
 
@@ -181,7 +725,17 @@ static func get_building(id: String) -> Dictionary:
 
 static func get_all_ids() -> PackedStringArray:
 	## Vráti zoznam všetkých definovaných building id.
-	var ids: PackedStringArray = []
+	var ids: PackedStringArray = PackedStringArray()
 	for key in BUILDINGS.keys():
 		ids.append(str(key))
 	return ids
+
+
+static func get_ids_by_category(category: String) -> PackedStringArray:
+	## Helper pre build UI – vráti id všetkých budov s danou category.
+	var result: PackedStringArray = PackedStringArray()
+	for key in BUILDINGS.keys():
+		var cfg: Dictionary = BUILDINGS[key]
+		if cfg.get("category", "") == category:
+			result.append(str(key))
+	return result

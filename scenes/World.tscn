@@ -1,7 +1,6 @@
-[gd_scene load_steps=14 format=3 uid="uid://bvvbpdio45xnj"]
+[gd_scene load_steps=13 format=3 uid="uid://bvvbpdio45xnj"]
 
 [ext_resource type="PackedScene" uid="uid://dcmf7xuptleyw" path="res://scenes/Terrain.tscn" id="1_kqs1s"]
-[ext_resource type="Script" uid="uid://sbtntlaw4cda" path="res://scripts/DEBUG/DebugUI.gd" id="1_nrtoj"]
 [ext_resource type="PackedScene" uid="uid://b3jdkp4vsbhya" path="res://scenes/BuilUI.tscn" id="2_32lhk"]
 [ext_resource type="Script" uid="uid://771gw0ni4g8d" path="res://scripts/exterior/Buildmode.gd" id="2_d1c63"]
 [ext_resource type="PackedScene" uid="uid://bcye1bqvvlut0" path="res://scenes/BMExtractor.tscn" id="2_pdh0q"]
@@ -15,7 +14,6 @@
 [ext_resource type="Script" uid="uid://b1b7n0dcc63je" path="res://scripts/ui/RightPanelUI.gd" id="12_nrtoj"]
 
 [node name="World" type="Node2D"]
-script = ExtResource("1_nrtoj")
 
 [node name="Terrain" parent="." instance=ExtResource("1_kqs1s")]
 
@@ -44,6 +42,10 @@ script = ExtResource("3_7g83o")
 [node name="TopBarUI" parent="UI" instance=ExtResource("8_b3faq")]
 
 [node name="RightPanelUI" parent="UI" instance=ExtResource("11_7c4bj")]
+anchors_preset = 11
+offset_left = -100.0
+offset_top = 300.0
+offset_bottom = 100.0
 script = ExtResource("12_nrtoj")
 
 [editable path="Terrain"]

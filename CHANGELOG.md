@@ -2,6 +2,16 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.56] – 2025-11-24
+Added
+BuildingsCfg v2 so survival setom budov
+landing_pad_basic, solar_panel_basic, battery_small, oxygen_generator_small, ice_mine_basic, hub_core, airlock_basic, crew_quarters_small, mess_hall_small, warehouse_small, hydroponics_basic.
+Každá budova má definované domain, category, footprint_type, anchor_type, placeholder cost, build time a behaviours (PowerProducer, PowerConsumer, PowerStorage, ProductionHourly, CrewCapacity, Storage atď.).
+
+Changed
+GameState teraz pri štarte inicializuje všetky zdroje z ResourceCfg.initial a synchronizuje ich do ResourceManageru, takže štartovacie hodnoty sú centrálne definované v ResourceCfg.
+
+
 [0.0.55] – 2025-11-24
 Added
 RightPanelUI – pravý UI panel s debug zobrazením globálnych survival zdrojov (energy, water, oxygen_units, food) napojený na ResourceManager.resource_changed.

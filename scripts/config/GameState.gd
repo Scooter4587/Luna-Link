@@ -11,6 +11,7 @@ var resources: Dictionary = {}
 
 ## Inicializácia GameState – načítanie default hodnôt z ResourceCfg.
 func _ready() -> void:
+	_init_resources()
 	# Debug log pôvodného systému
 	print("[GameState] ready, resources initialized: ", resources)
 
