@@ -2,6 +2,18 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.61] – 2025-11-26
+Added
+Základná scéna `CrewPawn` (CharacterBody2D) s ID, statusom a needs (oxygen, hunger, sleep).
+`CrewRegistry` ako globálny register všetkých členov posádky.
+`CrewController` – výber posádky ľavým klikom a move command pravým klikom.
+`CrewHudPanelUI` – panel zobrazujúci info o vybranej posádke (Status + needs).
+
+Changed
+Idle správanie pre crew napojené na GameClock (pauza a time speed).
+Anti-stuck logika pre idle/move, aby sa posádka nezasekávala pri nových budovách.
+
+
 [0.0.6] – 2025-11-25
 Added
 DebugFlags.gd – centrálna debug konfigurácia s MASTER_DEBUG a samostatnými prepínačmi:

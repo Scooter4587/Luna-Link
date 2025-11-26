@@ -11,3 +11,8 @@ script = ExtResource("1_0dhov")
 [node name="Sprite2D" type="Sprite2D" parent="."]
 z_index = 20
 texture = SubResource("PlaceholderTexture2D_k7n6p")
+
+[node name="Label" type="Label" parent="Sprite2D"]
+offset_right = 40.0
+offset_bottom = 23.0
+text = "Extractor"

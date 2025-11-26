@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://bvvbpdio45xnj"]
+[gd_scene load_steps=16 format=3 uid="uid://bvvbpdio45xnj"]
 
 [ext_resource type="PackedScene" uid="uid://dcmf7xuptleyw" path="res://scenes/Terrain.tscn" id="1_kqs1s"]
 [ext_resource type="PackedScene" uid="uid://b3jdkp4vsbhya" path="res://scenes/BuilUI.tscn" id="2_32lhk"]
@@ -12,6 +12,9 @@
 [ext_resource type="PackedScene" uid="uid://derui073uh73x" path="res://scenes/TopBarUI.tscn" id="8_b3faq"]
 [ext_resource type="PackedScene" uid="uid://b2j0pq4mepth" path="res://scenes/RightPanelUI.tscn" id="11_7c4bj"]
 [ext_resource type="Script" uid="uid://b1b7n0dcc63je" path="res://scripts/ui/RightPanelUI.gd" id="12_nrtoj"]
+[ext_resource type="PackedScene" uid="uid://dityrw4q4sdnn" path="res://scenes/CrewHudPanel.tscn" id="13_i4b1j"]
+[ext_resource type="PackedScene" uid="uid://bpg0xnifbjsoh" path="res://scenes/crew_pawn.tscn" id="13_nrtoj"]
+[ext_resource type="Script" uid="uid://grlnhjocqrnw" path="res://scripts/crew/crew_controller.gd" id="16_o1tcx"]
 
 [node name="World" type="Node2D"]
 
@@ -42,14 +45,26 @@ script = ExtResource("3_7g83o")
 [node name="TopBarUI" parent="UI" instance=ExtResource("8_b3faq")]
 
 [node name="RightPanelUI" parent="UI" instance=ExtResource("11_7c4bj")]
-anchors_preset = 11
 offset_left = -100.0
 offset_top = 300.0
 offset_bottom = 100.0
 script = ExtResource("12_nrtoj")
 
-[node name="Debug" type="Node" parent="."]
+[node name="CrewHudPanelUI" parent="UI" instance=ExtResource("13_i4b1j")]
+anchors_preset = 4
+anchor_top = 0.5
+anchor_right = 0.0
+anchor_bottom = 0.5
+grow_horizontal = 1
+mouse_filter = 2
 
-[node name="AirlockTest" type="Node" parent="Debug"]
+[node name="CrewPawn" parent="." instance=ExtResource("13_nrtoj")]
+
+[node name="CrewPawn2" parent="." instance=ExtResource("13_nrtoj")]
+position = Vector2(30, 30)
+
+[node name="CrewController" type="Node2D" parent="." node_paths=PackedStringArray("hud_panel")]
+script = ExtResource("16_o1tcx")
+hud_panel = NodePath("../UI/CrewHudPanelUI")
 
 [editable path="Terrain"]

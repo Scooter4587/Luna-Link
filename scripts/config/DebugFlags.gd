@@ -13,10 +13,14 @@ const DEBUG_AUTOTEST_AIRLOCK: bool = false
 ## Zapne/vypne logovanie z BMExtractorov
 const DEBUG_BM_EXTRACTOR_LOGS: bool = false
 
-
 const DEBUG_ENERGY_SYSTEM: bool = false
 const DEBUG_PRODUCTION_SYSTEM: bool = false
 const DEBUG_CONSTRUCTION: bool = false
 const DEBUG_PLACEMENT: bool = false
 const DEBUG_LIFE_SUPPORT: bool = false
 const DEBUG_PRESSURIZED_ZONES: bool = false
+
+## --- Crew debug flags ---
+const DEBUG_CREW: bool = false
+const DEBUG_CREW_IDLE: bool = false
+const DEBUG_CREW_HUD: bool = false

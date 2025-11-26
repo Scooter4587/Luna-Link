@@ -326,28 +326,3 @@ Tagujeme ako **[0.2+]**:
   - eventy (nehody, psychické breakdowny).
 
 Tieto nápady nechávame uložené, ale **0.1 rieši len survival prvého hubu**.
-
-
-## hydroponics_basic – design (0.0.54)
-
-- Typ: interior building (v hube).
-- Úloha: základná produkcia jedla z vody.
-
-Backend plán:
-- ProductionHourly:
-  - input_resource_id: &"water"
-  - input_per_hour: 1.0   # 1 jednotka vody / hod
-  - output_resource_id: &"food"
-  - output_per_hour: 2.0  # 2 jednotky jedla / hod
-  - require_power: true
-  - require_full_input: true
-
-- PowerConsumer:
-  - consumption_per_hour: 3.0  # 3 energy / hod
-  - critical: true (bez jedla dlhodobo = problém pre crew)
-
-Poznámka:
-- Zatiaľ žiadne napojenie na crew (spotreba jedla).
-- Napojenie ProductionHourly + PowerConsumer na konkrétnu scénu
-  (hydroponics_basic.tscn) príde v kroku ~0.0.57 spolu s ice_mine_basic
-  a oxygen_generator_small.

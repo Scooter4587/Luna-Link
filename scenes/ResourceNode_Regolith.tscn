@@ -10,3 +10,10 @@ script = ExtResource("1_3cjc4")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = SubResource("PlaceholderTexture2D_3cjc4")
+
+[node name="Label" type="Label" parent="Sprite2D"]
+offset_left = -25.0
+offset_top = -10.0
+offset_right = 39.0
+offset_bottom = 13.0
+text = "Regolith"

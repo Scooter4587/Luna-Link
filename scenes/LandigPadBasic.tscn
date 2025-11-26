@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3 uid="uid://dlee66jgnqp65"]
+
+[ext_resource type="Script" uid="uid://besine6bpsibi" path="res://scripts/exterior/LandingPad.gd" id="1_70i3n"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_j0ypj"]
+size = Vector2(50, 50)
+
+[node name="LandingPad" type="Node2D"]
+script = ExtResource("1_70i3n")
+crew_spawn_point = NodePath("CrewSpawnPoint")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = SubResource("PlaceholderTexture2D_j0ypj")
+
+[node name="CrewSpawnPoint" type="Marker2D" parent="."]
+
+[node name="Label" type="Label" parent="."]
+offset_left = -18.0
+offset_top = -20.0
+offset_right = 15.0
+offset_bottom = 16.0
+text = "Pad"

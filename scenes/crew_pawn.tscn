@@ -1,0 +1,24 @@
+[gd_scene load_steps=4 format=3 uid="uid://bpg0xnifbjsoh"]
+
+[ext_resource type="Script" uid="uid://dge7kc2ey0o1q" path="res://scripts/crew/crew_pawn.gd" id="1_r8epn"]
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_0jm3f"]
+size = Vector2(10, 10)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_0jm3f"]
+
+[node name="CrewPawn" type="CharacterBody2D"]
+script = ExtResource("1_r8epn")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = SubResource("PlaceholderTexture2D_0jm3f")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_0jm3f")
+
+[node name="Label" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="MoveLine" type="Line2D" parent="."]
+width = 1.0
