@@ -1,8 +1,9 @@
-[gd_scene load_steps=16 format=3 uid="uid://bvvbpdio45xnj"]
+[gd_scene load_steps=17 format=3 uid="uid://bvvbpdio45xnj"]
 
 [ext_resource type="PackedScene" uid="uid://dcmf7xuptleyw" path="res://scenes/Terrain.tscn" id="1_kqs1s"]
 [ext_resource type="PackedScene" uid="uid://b3jdkp4vsbhya" path="res://scenes/BuilUI.tscn" id="2_32lhk"]
 [ext_resource type="Script" uid="uid://771gw0ni4g8d" path="res://scripts/exterior/Buildmode.gd" id="2_d1c63"]
+[ext_resource type="PackedScene" uid="uid://cxpyam7vwxqo" path="res://scenes/RoomArea2D.tscn" id="2_o1tcx"]
 [ext_resource type="PackedScene" uid="uid://bcye1bqvvlut0" path="res://scenes/BMExtractor.tscn" id="2_pdh0q"]
 [ext_resource type="PackedScene" uid="uid://dpaynrvl2p2ya" path="res://scenes/Building.tscn" id="3_0uv0p"]
 [ext_resource type="Script" uid="uid://b6u5rh15bjuef" path="res://scripts/world/CameraController.gd" id="3_7g83o"]
@@ -21,6 +22,10 @@
 [node name="Terrain" parent="." instance=ExtResource("1_kqs1s")]
 
 [node name="Buildings" type="Node2D" parent="."]
+
+[node name="RoomsRoot" type="Node2D" parent="."]
+
+[node name="RoomArea2D" parent="RoomsRoot" instance=ExtResource("2_o1tcx")]
 
 [node name="Construction" type="Node2D" parent="."]
 

@@ -2,7 +2,7 @@
 class_name DebugFlags
 
 ## Globálny master switch – keď je false, všetky debug helpery sa vypnú.
-const MASTER_DEBUG: bool = false
+const MASTER_DEBUG: bool = true
 
 ## Zapne/vypne štartovacie resourcy cez DebugUI.gd
 const DEBUG_STARTING_RESOURCES: bool = false
@@ -24,3 +24,9 @@ const DEBUG_PRESSURIZED_ZONES: bool = false
 const DEBUG_CREW: bool = false
 const DEBUG_CREW_IDLE: bool = false
 const DEBUG_CREW_HUD: bool = false
+
+
+## --- Rooms / Navigation / Airlock ---
+const DEBUG_ROOMS: bool = false
+const DEBUG_NAV: bool = false
+const DEBUG_AIRLOCK: bool = false

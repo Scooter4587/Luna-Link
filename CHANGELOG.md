@@ -2,6 +2,21 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.62] – 2025-11-29
+Added
+RoomCfg.gd ako centralny config pre typy miestnosti (quarters_basic, mess_hall_basic, airlock_basic) vratane min_size_cells, default_size_cells, base_capacity a debug farieb.
+RoomArea2D.tscn + RoomArea2D.gd ako runtime reprezentacia jednej roomky (overlay, label, kapacita, bounds v room gride).
+RoomRegistry.gd (autoload Room_Registry) ako globalny register vsetkych RoomArea2D instancii, s indexom podla typu a foundation_id a helpermi get_rooms_of_type, get_rooms_in_foundation, get_airlocks a debug_print_summary().
+Rozsirene DebugFlags.gd o nove debug flagy DEBUG_ROOMS, DEBUG_NAV a DEBUG_AIRLOCK, napojene na RoomRegistry.
+
+Changed
+DebugFlags - updatované o Room
+
+Notes
+Rooms su zatial instancovane rucne vo world scene a pouzivaju debug overlay na vizualnu kontrolu.
+Interior build mode s ghost rooms a rect-drag (Rooms / Objects UI) bude implementovany v 0.0.63.
+
+
 [0.0.61] – 2025-11-26
 Added
 Základná scéna `CrewPawn` (CharacterBody2D) s ID, statusom a needs (oxygen, hunger, sleep).

@@ -24,6 +24,7 @@ ResourceManager="*res://scripts/core/resource_manager.gd"
 EnergySystem="*res://scripts/core/behaviors/energy_system.gd"
 ProductionSystem="*res://scripts/core/behaviors/production_system.gd"
 Crew_Registry="*res://scripts/crew/crew_registry.gd"
+Room_Registry="*res://scripts/rooms/RoomRegistry.gd"
 
 [display]
 

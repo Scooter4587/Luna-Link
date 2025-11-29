@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://cxpyam7vwxqo"]
+
+[ext_resource type="Script" uid="uid://cwmik7mm5xmca" path="res://scripts/rooms/RoomArea2D.gd" id="1_ajtbl"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_kb6xc"]
+
+[node name="RoomArea2D" type="Area2D"]
+script = ExtResource("1_ajtbl")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_kb6xc")
+
+[node name="Label" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
