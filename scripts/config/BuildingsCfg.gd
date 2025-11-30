@@ -27,11 +27,6 @@ class_name BuildingsCfg
 ## - cost: Dictionary           # resource_id (StringName) -> fixná cena
 ##
 ## - behaviors: Array[Dictionary] # zoznam behavior modulov (type + config Dictionary)
-##   # Príklad:
-##   # "behaviors": [
-##   #   { "type": "PowerProducer", "config": { "production_per_hour": 10.0 } },
-##   #   { "type": "PowerConsumer", "config": { "consumption_per_hour": 5.0, "critical": true } },
-##   # ]
 ##
 ## - ui_group: String           # skupina pre build UI (napr. "foundation", "exterior_power", "interior_room")
 ## - ui_icon_id: String         # ID ikonky / placeholder textúry (môže byť rovnaké ako id)
@@ -483,7 +478,7 @@ const BUILDINGS: Dictionary = {
 	},
 
 	# -------------------------------------------------------------------------
-	# CREW QUARTERS SMALL – interiérová miestnosť, rect_drag
+	# CREW QUARTERS SMALL – pôvodná interiérová miestnosť (legacy / dev)
 	# -------------------------------------------------------------------------
 	"crew_quarters_small": {
 		"id": "crew_quarters_small",
@@ -535,7 +530,7 @@ const BUILDINGS: Dictionary = {
 	},
 
 	# -------------------------------------------------------------------------
-	# MESS HALL SMALL – interiérová miestnosť pre stravovanie
+	# MESS HALL SMALL – pôvodná interiérová miestnosť (legacy / dev)
 	# -------------------------------------------------------------------------
 	"mess_hall_small": {
 		"id": "mess_hall_small",
@@ -620,7 +615,6 @@ const BUILDINGS: Dictionary = {
 				"type": "Storage",
 				"config": {
 					"capacity": 200.0,
-					# neskôr špecifikujeme typy resource, ktoré môže držať
 				},
 			},
 		],
@@ -713,6 +707,184 @@ const BUILDINGS: Dictionary = {
 
 		"ui_group": "interior_room",
 		"ui_icon_id": "room_basic",
+	},
+
+	# -------------------------------------------------------------------------
+	# 0.0.63 – NOVÉ INTERIOR ROOM BUILDINGS (napojené na RoomCfg ID cez string)
+	# -------------------------------------------------------------------------
+	"room_quarters_basic": {
+		"id": "room_quarters_basic",
+		"display_name": "Room – Crew Quarters (Basic)",
+		"domain": "interior",
+		"category": "interior",
+		"footprint_type": "rect_drag",
+		"anchor_type": "inside_hub",
+		"size_cells": Vector2i(1, 1),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"InsideFoundation",
+		],
+
+		# ID, ktore MUSI sediet s RoomCfg.TYPE_QUARTERS_BASIC (&"quarters_basic")
+		"room_type_id": &"quarters_basic",
+		"min_size_cells": Vector2i(3, 2),
+
+		"time_mode": "game_hours",
+		"build_time_per_tile": 0.05,
+
+		"cost_per_tile": {
+			&"building_materials": 3.0,
+		},
+
+		"ui_group": "interior_rooms",
+		"ui_icon_id": "room_quarters_basic",
+	},
+
+	"room_mess_hall_basic": {
+		"id": "room_mess_hall_basic",
+		"display_name": "Room – Mess Hall (Basic)",
+		"domain": "interior",
+		"category": "interior",
+		"footprint_type": "rect_drag",
+		"anchor_type": "inside_hub",
+		"size_cells": Vector2i(1, 1),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"InsideFoundation",
+		],
+
+		"room_type_id": &"mess_hall_basic",
+		"min_size_cells": Vector2i(3, 2),
+
+		"time_mode": "game_hours",
+		"build_time_per_tile": 0.05,
+
+		"cost_per_tile": {
+			&"building_materials": 3.0,
+		},
+
+		"ui_group": "interior_rooms",
+		"ui_icon_id": "room_mess_hall_basic",
+	},
+
+	"room_airlock_basic": {
+		"id": "room_airlock_basic",
+		"display_name": "Room – Airlock (Basic)",
+		"domain": "interior",
+		"category": "interior",
+		"footprint_type": "rect_drag",
+		"anchor_type": "inside_hub",
+		"size_cells": Vector2i(1, 1),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"InsideFoundation",
+		],
+
+		"room_type_id": &"airlock_basic",
+		"min_size_cells": Vector2i(2, 2),
+
+		"time_mode": "game_hours",
+		"build_time_per_tile": 0.05,
+
+		"cost_per_tile": {
+			&"building_materials": 3.0,
+		},
+
+		"ui_group": "interior_rooms",
+		"ui_icon_id": "room_airlock_basic",
+	},
+
+	# -------------------------------------------------------------------------
+	# 0.0.63 – INTERIOR OBJECTS (placeholdery, budu sa klast InsideRoom)
+	# -------------------------------------------------------------------------
+	"door_interior_basic": {
+		"id": "door_interior_basic",
+		"display_name": "Interior Door (Basic)",
+		"domain": "interior",
+		"category": "object",
+		"footprint_type": "fixed",
+		"anchor_type": "inside_hub",
+		"size_cells": Vector2i(1, 1),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"InsideRoom",
+		],
+
+		"time_mode": "game_hours",
+		"build_time_total": 0.25,
+
+		"cost": {
+			&"building_materials": 2.0,
+		},
+
+		"behaviors": [
+			# neskor: Door / Navigation blocker, prepojene s AirlockController
+		],
+
+		"ui_group": "interior_objects",
+		"ui_icon_id": "door_interior_basic",
+	},
+
+	"bed_basic": {
+		"id": "bed_basic",
+		"display_name": "Bed (Basic)",
+		"domain": "interior",
+		"category": "object",
+		"footprint_type": "fixed",
+		"anchor_type": "inside_hub",
+		"size_cells": Vector2i(1, 2),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"InsideRoom",
+		],
+
+		"time_mode": "game_hours",
+		"build_time_total": 0.5,
+
+		"cost": {
+			&"building_materials": 3.0,
+		},
+
+		"behaviors": [
+			# neskor: ovplyvnuje sleep komfort v Quarters
+		],
+
+		"ui_group": "interior_objects",
+		"ui_icon_id": "bed_basic",
+	},
+
+	"table_basic": {
+		"id": "table_basic",
+		"display_name": "Table (Basic)",
+		"domain": "interior",
+		"category": "object",
+		"footprint_type": "fixed",
+		"anchor_type": "inside_hub",
+		"size_cells": Vector2i(2, 1),
+		"pivot_cell": Vector2i(0, 0),
+
+		"placement_rules": [
+			"InsideRoom",
+		],
+
+		"time_mode": "game_hours",
+		"build_time_total": 0.5,
+
+		"cost": {
+			&"building_materials": 3.0,
+		},
+
+		"behaviors": [
+			# neskor: dekor + komfort v Mess Hall / Quarters
+		],
+
+		"ui_group": "interior_objects",
+		"ui_icon_id": "table_basic",
 	},
 }
 

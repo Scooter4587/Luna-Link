@@ -2,6 +2,27 @@
 Všetky významné zmeny v tomto projekte budú zapisované sem. Formát: **[verzia] — YYYY-MM-DD**.  
 Sekcie: **Added / Changed / Fixed / Removed / Docs / DevOps**. Používame **Conventional Commits** a krátke PR.
 
+[0.0.63] – 2025-11-30
+Added
+RoomCfg: definície miestností quarters_basic, mess_hall_basic a airlock_basic (min_size, default_size, capacity, requires_floor, debug_color).
+RoomMode: interior build mód s drag-rect stavbou miestností vybraných z Build UI.
+RoomArea2D + RoomRegistry: registrácia miestností, kontrola overlapu a základné debug logy.
+GameState: sledovanie hub foundations (Rect2i) ako zdroj pravdy pre interiéry.
+
+Changed
+ConstructionSite teraz pozná building_id a pri dokončení foundation_basic nahlási jeho rect do GameState.
+Výpočet spawn pozície budov z ConstructionSite používa skutočný ľavý horný roh foundation (nie stred tile).
+RoomMode pri potvrdení stavby kontroluje, že miestnosť je úplne vo vnútri hub foundation a má pod sebou floor.
+UI je teraz modulárne a dá sa vyberať zo skúpín jednotlivé budovy a roomky.
+
+Fixed
+Nie je možné stavať interior rooms, kým neexistuje žiadny hub foundation.
+Nie je možné ťahať rooms cez foundation walls (validuje sa len vnútorný floor priestor).
+Menšie čistenie logov a konzistentnejšie debug hlášky v BuildMode, RoomMode a GameState.
+
+Notes
+Toto bolo náročné - ale je to DONE
+
 [0.0.62] – 2025-11-29
 Added
 RoomCfg.gd ako centralny config pre typy miestnosti (quarters_basic, mess_hall_basic, airlock_basic) vratane min_size_cells, default_size_cells, base_capacity a debug farieb.

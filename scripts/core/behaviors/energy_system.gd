@@ -60,5 +60,5 @@ func _on_clock_hour_changed(_y: int, _m: int, _d: int, _h: int) -> void:
 
 
 func _should_debug() -> bool:
-	# Zatiaľ iba master flag, nech nič nepadá na chýbajúcich DEBUG_XXX
-	return DebugFlags.MASTER_DEBUG
+	# Debug je zapnutý len keď je master ON a špecifický flag pre energy systém ON.
+	return DebugFlags.MASTER_DEBUG and DebugFlags.DEBUG_ENERGY_SYSTEM

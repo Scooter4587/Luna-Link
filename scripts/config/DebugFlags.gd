@@ -27,6 +27,6 @@ const DEBUG_CREW_HUD: bool = false
 
 
 ## --- Rooms / Navigation / Airlock ---
-const DEBUG_ROOMS: bool = false
+const DEBUG_ROOMS: bool = true
 const DEBUG_NAV: bool = false
 const DEBUG_AIRLOCK: bool = false

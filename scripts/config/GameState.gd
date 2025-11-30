@@ -14,6 +14,10 @@ signal resource_changed(id: StringName, new_value: float, delta: float)
 # Aktuálne hodnoty zdrojov: { id: value }
 var resources: Dictionary = {}
 
+var hub_foundation_ready: bool = false
+var hub_foundation_rect: Rect2i = Rect2i(Vector2i.ZERO, Vector2i.ZERO)
+var hub_foundation_rects: Array[Rect2i] = [] 
+
 ## Inicializácia GameState – načítanie default hodnôt z ResourceCfg.
 func _ready() -> void:
 	_init_resources()
@@ -215,3 +219,52 @@ func get_hourly_production() -> Dictionary:
 func get_hourly_delta_for(resource_id: StringName) -> float:
 	var totals: Dictionary = get_hourly_production()
 	return float(totals.get(resource_id, 0.0))
+
+func set_hub_foundation_rect(rect: Rect2i) -> void:
+	## Primárny hub (naposledy postavený / potvrdený)
+	hub_foundation_rect = rect
+	hub_foundation_ready = true
+
+	## Ulož aj do zoznamu všetkých hub foundations (bez duplicit)
+	if not hub_foundation_rects.has(rect):
+		hub_foundation_rects.append(rect)
+
+	if DebugFlags.MASTER_DEBUG and DebugFlags.DEBUG_ROOMS:
+		print("[GameState] hub_foundation_rect set to ", rect, "  all_hubs=", hub_foundation_rects)
+
+
+func clear_hub_foundations() -> void:
+	hub_foundation_rect = Rect2i()
+	hub_foundation_rects.clear()
+	hub_foundation_ready = false
+
+
+func get_hub_foundation_rects() -> Array[Rect2i]:
+	return hub_foundation_rects
+
+
+func any_hub_encloses(rect: Rect2i) -> bool:
+	## starší helper, keby sme chceli len „čokoľvek vnútri foundation“
+	if not hub_foundation_ready:
+		return false
+
+	for hub in hub_foundation_rects:
+		if hub.encloses(rect):
+			return true
+	return false
+
+
+func any_hub_interior_encloses(rect: Rect2i) -> bool:
+	## Pre rooms: rect musí ležať komplet vo vnútornom floor-e
+	## Predpoklad: foundation má aspoň 1 bunku „walls“ okolo → interior = hub.grow(-1)
+	if not hub_foundation_ready:
+		return false
+
+	for hub in hub_foundation_rects:
+		var interior: Rect2i = hub.grow(-1)  ## zmenší o 1 bunku z každej strany
+		if interior.size.x <= 0 or interior.size.y <= 0:
+			continue
+		if interior.encloses(rect):
+			return true
+
+	return false

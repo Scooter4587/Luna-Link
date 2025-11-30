@@ -5,6 +5,13 @@ extends Node
 ## Rozmer jednej dlaždice v pixeloch (globálne pre build)
 const CELL_PX := 128
 
+# „malý“ grid pre interiér / rooms
+const ROOM_CELL_PX: int = 16
+
+# koľko room-buniek sa vojde do jedného foundation tile
+@warning_ignore("integer_division")
+const ROOM_CELLS_PER_FOUNDATION: int = CELL_PX / ROOM_CELL_PX
+
 ## Minimálny rozmer základu (foundation)
 const FOUNDATION_MIN_SIZE := Vector2i(2, 2)
 const EXTRACTOR_SIZE_CELLS: Vector2i = Vector2i(3, 3) # footprint 3×3 (ľahko zmeň podľa sprite)

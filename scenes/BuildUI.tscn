@@ -1,0 +1,51 @@
+[gd_scene load_steps=2 format=3 uid="uid://b3jdkp4vsbhya"]
+
+[ext_resource type="Script" uid="uid://douxs6wqmoxm0" path="res://scripts/ui/BuildUI.gd" id="1_njhfg"]
+
+[node name="BuildUI" type="Control"]
+layout_mode = 3
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("1_njhfg")
+
+[node name="RootVbox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -95.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="SelectionScroll" type="ScrollContainer" parent="RootVbox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SelectionContainer" type="HBoxContainer" parent="RootVbox/SelectionScroll"]
+layout_mode = 2
+
+[node name="CategoryBar" type="HBoxContainer" parent="RootVbox"]
+layout_mode = 2
+
+[node name="FoundationButton" type="Button" parent="RootVbox/CategoryBar"]
+layout_mode = 2
+text = "Foundation"
+
+[node name="ExteriorButton" type="Button" parent="RootVbox/CategoryBar"]
+layout_mode = 2
+text = "Exterior"
+
+[node name="InteriorButton" type="Button" parent="RootVbox/CategoryBar"]
+layout_mode = 2
+text = "Interior"
+
+[node name="ObjectsButton" type="Button" parent="RootVbox/CategoryBar"]
+layout_mode = 2
+text = "Objects"

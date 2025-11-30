@@ -13,7 +13,7 @@ class_name RoomArea2D
 		_refresh_from_cfg()
 
 ## Veľkosť jednej interiérovej bunky v pixeloch
-@export var cell_size_px: Vector2 = Vector2(32, 32)
+@export var cell_size_px: Vector2 = Vector2(BuildCfg.ROOM_CELL_PX, BuildCfg.ROOM_CELL_PX)
 
 ## Či sa má kresliť overlay (ghost / debug)
 @export var draw_overlay: bool = true:
@@ -28,7 +28,8 @@ class_name RoomArea2D
 		queue_redraw()
 
 @export_group("Debug")
-@export var debug_use_initial_rect: bool = true
+## Default false – runtime RoomArea2D si rect nastaví RoomMode
+@export var debug_use_initial_rect: bool = false
 @export var debug_initial_size_cells: Vector2i = Vector2i(3, 2)
 
 # ---------------------------------------------------------
@@ -55,12 +56,26 @@ var foundation_id: int = -1
 ## Interný flag, či je zaregistrovaná v Room_Registry
 var _is_registered: bool = false
 
-@onready var _collision_shape: CollisionShape2D = $CollisionShape2D
-@onready var _label: Label = $Label
+@onready var _collision_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
+@onready var _label: Label = get_node_or_null("Label")
 
 
 func _ready() -> void:
-	# 1) Ak je default 1x1, nastavíme debug rect
+	z_index = 200  # nech sú rooms nad interiérom
+
+	# 0) zabezpečíme, že máme helper nody aj keď nás niekto vytvorí cez .new()
+	if _collision_shape == null:
+		_collision_shape = CollisionShape2D.new()
+		_collision_shape.name = "CollisionShape2D"
+		add_child(_collision_shape)
+
+	if _label == null:
+		_label = Label.new()
+		_label.name = "Label"
+		_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_label)
+
+	# 1) Ak je default 1x1 a máme povolený debug rect, nastavíme ho
 	if debug_use_initial_rect and bounds_rect_cells.size == Vector2i(1, 1):
 		var rect := Rect2i(Vector2i.ZERO, debug_initial_size_cells)
 		set_bounds_rect_cells(rect)
@@ -107,16 +122,17 @@ func set_bounds_rect_cells(rect: Rect2i) -> void:
 	bounds_rect_cells = rect
 	_rebuild_cells_from_rect()
 	_update_collision_shape()
+	_update_label()
 	queue_redraw()
 
 
 func _rebuild_cells_from_rect() -> void:
 	bounds_cells.clear()
 
-	var start_x := bounds_rect_cells.position.x
-	var end_x := bounds_rect_cells.position.x + bounds_rect_cells.size.x
-	var start_y := bounds_rect_cells.position.y
-	var end_y := bounds_rect_cells.position.y + bounds_rect_cells.size.y
+	var start_x: int = bounds_rect_cells.position.x
+	var end_x: int = bounds_rect_cells.position.x + bounds_rect_cells.size.x
+	var start_y: int = bounds_rect_cells.position.y
+	var end_y: int = bounds_rect_cells.position.y + bounds_rect_cells.size.y
 
 	for x in range(start_x, end_x):
 		for y in range(start_y, end_y):
@@ -149,21 +165,17 @@ func unregister_occupant(_crew_id: int) -> void:
 		current_occupants -= 1
 	_update_label()
 
-## Rezidenti (crew_id), ktorí tu bývajú – naplníme v 0.0.65.
-var assigned_residents: Array[int] = []
-
-## Worker crew_id, ktorí tu pracujú – naplníme v 0.0.65.
-var assigned_workers: Array[int] = []
 
 func set_foundation_id(new_foundation_id: int) -> void:
 	if new_foundation_id == foundation_id:
 		return
 
-	var old_foundation_id := foundation_id
+	var old_foundation_id: int = foundation_id
 	foundation_id = new_foundation_id
 
 	if not Engine.is_editor_hint() and _is_registered:
 		Room_Registry.notify_foundation_changed(self, old_foundation_id, foundation_id)
+
 
 # ---------------------------------------------------------
 # Vizuál – overlay a label
@@ -181,7 +193,7 @@ func _draw() -> void:
 	if bounds_cells.is_empty():
 		_rebuild_cells_from_rect()
 
-	var color := _get_overlay_color()
+	var color: Color = _get_overlay_color()
 
 	for cell in bounds_cells:
 		var origin_px := Vector2(cell.x * cell_size_px.x, cell.y * cell_size_px.y)
@@ -209,20 +221,17 @@ func _update_label() -> void:
 	var def := RoomCfg.get_room_def(room_type_id)
 	var display_name: String = def.get("display_name", str(room_type_id))
 
-	var id_part := "#%d" % room_instance_id if room_instance_id >= 0 else "(unassigned)"
 	var occ_part := "%d/%d" % [current_occupants, max_capacity]
 
-	_label.text = "%s %s\n%s" % [display_name, id_part, occ_part]
+	# krátky text, nech sa neprebíja s overlayom
+	_label.text = "%s\n%s" % [display_name, occ_part]
 
-	var center_px := _get_bounds_center_px()
-	_label.position = center_px
-
-
-func _get_bounds_center_px() -> Vector2:
-	var rect := bounds_rect_cells
-	var center_cell_x := rect.position.x + rect.size.x * 0.5
-	var center_cell_y := rect.position.y + rect.size.y * 0.5
-	return Vector2(center_cell_x * cell_size_px.x, center_cell_y * cell_size_px.y)
+	# pozícia – ľavý horný roh miestnosti + malý offset
+	var tl_px := Vector2(
+		bounds_rect_cells.position.x * cell_size_px.x,
+		bounds_rect_cells.position.y * cell_size_px.y
+	)
+	_label.position = tl_px + Vector2(4, 4)
 
 
 func _update_collision_shape() -> void:
@@ -240,5 +249,9 @@ func _update_collision_shape() -> void:
 	)
 	rect_shape.size = size_px
 
-	var center_px := _get_bounds_center_px()
+	# center – stred bounds_rect_cells v pixeloch
+	var center_cell_x := bounds_rect_cells.position.x + bounds_rect_cells.size.x * 0.5
+	var center_cell_y := bounds_rect_cells.position.y + bounds_rect_cells.size.y * 0.5
+	var center_px := Vector2(center_cell_x * cell_size_px.x, center_cell_y * cell_size_px.y)
+
 	_collision_shape.position = center_px

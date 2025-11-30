@@ -106,6 +106,8 @@ static func spawn_site(config: Dictionary) -> Node2D:
 		push_error("[ConstructionService] spawn_site: instanced site is not Node2D")
 		return null
 
+	site.set("building_id", StringName(building_id))
+
 	# Povinné údaje
 	if config.has("terrain_grid"):
 		site.set("terrain_grid", config["terrain_grid"])

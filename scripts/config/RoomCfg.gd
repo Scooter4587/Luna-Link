@@ -21,7 +21,7 @@ const TYPE_AIRLOCK_BASIC: StringName = &"airlock_basic"
 static var ROOMS: Dictionary = {
 	TYPE_QUARTERS_BASIC: {
 		"id": TYPE_QUARTERS_BASIC,
-        "requires_foundation": true,
+		"requires_floor": true,
 		"display_name": "Crew Quarters (Basic)",
 		"category": "quarters",               # na filtrovanie v UI
 		"min_size_cells": Vector2i(3, 2),     # minimálny obrys
@@ -41,7 +41,7 @@ static var ROOMS: Dictionary = {
 
 	TYPE_MESS_HALL_BASIC: {
 		"id": TYPE_MESS_HALL_BASIC,
-        "requires_foundation": true,
+		"requires_floor": true,
 		"display_name": "Mess Hall (Basic)",
 		"category": "mess_hall",
 		"min_size_cells": Vector2i(3, 2),
@@ -61,7 +61,7 @@ static var ROOMS: Dictionary = {
 
 	TYPE_AIRLOCK_BASIC: {
 		"id": TYPE_AIRLOCK_BASIC,
-        "requires_foundation": true,
+		"requires_floor": true,
 		"display_name": "Airlock (Basic)",
 		"category": "airlock",
 		"min_size_cells": Vector2i(2, 2),
@@ -89,8 +89,10 @@ static var ROOMS: Dictionary = {
 static func get_room_ids() -> Array[StringName]:
 	return ROOMS.keys()
 
+
 static func has_room(room_type_id: StringName) -> bool:
 	return ROOMS.has(room_type_id)
+
 
 static func get_room_def(room_type_id: StringName) -> Dictionary:
 	if not ROOMS.has(room_type_id):
@@ -98,11 +100,13 @@ static func get_room_def(room_type_id: StringName) -> Dictionary:
 		return {}
 	return ROOMS[room_type_id]
 
+
 static func get_min_size(room_type_id: StringName) -> Vector2i:
 	var def := get_room_def(room_type_id)
 	if def.is_empty():
 		return Vector2i.ZERO
 	return def.get("min_size_cells", Vector2i.ONE)
+
 
 static func get_default_size(room_type_id: StringName) -> Vector2i:
 	var def := get_room_def(room_type_id)
@@ -110,11 +114,13 @@ static func get_default_size(room_type_id: StringName) -> Vector2i:
 		return Vector2i.ZERO
 	return def.get("default_size_cells", def.get("min_size_cells", Vector2i.ONE))
 
+
 static func get_base_capacity(room_type_id: StringName) -> int:
 	var def := get_room_def(room_type_id)
 	if def.is_empty():
 		return 0
 	return int(def.get("base_capacity", 0))
+
 
 static func get_debug_color(room_type_id: StringName) -> Color:
 	var def := get_room_def(room_type_id)
@@ -122,8 +128,16 @@ static func get_debug_color(room_type_id: StringName) -> Color:
 		return Color(1, 1, 1, 0.1)
 	return def.get("debug_color", Color(1, 1, 1, 0.1))
 
+
 static func is_airlock(room_type_id: StringName) -> bool:
 	var def := get_room_def(room_type_id)
 	if def.is_empty():
 		return false
 	return def.get("is_airlock", false)
+
+
+static func requires_floor(room_type_id: StringName) -> bool:
+	var def := get_room_def(room_type_id)
+	if def.is_empty():
+		return false
+	return bool(def.get("requires_floor", false))

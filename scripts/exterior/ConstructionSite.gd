@@ -33,6 +33,7 @@ enum BuildTimeMode { REALTIME_SECONDS = 0, GAME_MINUTES_FIXED = 1, GAME_HOURS_FI
 
 @export var use_center_override: bool = false
 @export var spawn_center_override_world: Vector2 = Vector2.ZERO
+@export var building_id: StringName = &""
 
 @export var visual_px_size: Vector2 = Vector2.ZERO
 @export var linked_resource_node_path: NodePath = NodePath("")
@@ -186,12 +187,27 @@ func _finalize_build() -> void:
 		return
 	var b2d: Node2D = b as Node2D
 
+	# --- SPOČÍTAME SPRÁVNU WORLD POZÍCIU ------------------------------------
 	var spawn_world: Vector2
+
 	if use_center_override:
+		# Extractory a iné špeciálne budovy – nechávame existujúce správanie
 		spawn_world = spawn_center_override_world
 	else:
-		var tl_local: Vector2 = terrain_grid.map_to_local(top_left_cell)
-		spawn_world = terrain_grid.to_global(tl_local)
+		# Foundation / bežné budovy:
+		# top_left_cell = ľavý horný tile na Terrain TileMap.
+		# map_to_local() vracia stred tile → odpočítame polovicu veľkosti tile.
+		var tile_size: Vector2 = _tile_px()
+		var tl_center_local: Vector2 = terrain_grid.map_to_local(top_left_cell)
+		var tl_world: Vector2 = terrain_grid.to_global(tl_center_local - tile_size * 0.5)
+		spawn_world = tl_world
+	# -------------------------------------------------------------------------
+
+	# --- HUB FOUNDATION → uložíme rect do GameState -------------------------
+	if building_id == &"foundation_basic":
+		var hub_rect := Rect2i(top_left_cell, size_cells)
+		State.set_hub_foundation_rect(hub_rect)
+	# -------------------------------------------------------------------------
 
 	# Prenos parametrov do budovy (ak ich podporuje)
 	b2d.set("cell_px", cell_px)
@@ -222,6 +238,8 @@ func _finalize_build() -> void:
 
 	_disconnect_clock()
 	queue_free()
+
+
 
 
 func _draw() -> void:

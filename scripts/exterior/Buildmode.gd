@@ -27,6 +27,7 @@ var dragging: bool = false
 var drag_a: Vector2i = Vector2i.ZERO
 var drag_b: Vector2i = Vector2i.ZERO
 var hover_cell: Vector2i = Vector2i.ZERO
+var current_building_id: String = ""
 
 
 func _ready() -> void:
@@ -51,85 +52,131 @@ func _ready() -> void:
 	if terrain_grid == null:
 		push_error("[BuildMode] terrain_grid is NULL – priraď v Inspectore (Terrain/Main_Ground).")
 
-	# --- UI signál (BuildUI/BtnBuild fallback) ---
+	# --- UI signál (nový BuildUI.building_selected) ---
 	var ui: Node = get_node_or_null("../UI/BuildUI")
 	if ui != null:
-		if ui.has_signal("tool_requested"):
-			ui.tool_requested.connect(on_ui_tool_requested)
-			print("[BuildMode] UI signal connected")
+		if ui.has_signal("building_selected"):
+			ui.building_selected.connect(_on_build_ui_building_selected)
+			print("[BuildMode] Connected BuildUI.building_selected")
 		else:
-			var btn: Button = ui.find_child("BtnBuild", true, false) as Button
-			if btn != null:
-				btn.pressed.connect(func(): on_ui_tool_requested(0))
-				print("[BuildMode] Fallback: BtnBuild connected")
+			push_warning("[BuildMode] BuildUI nemá signal 'building_selected'")
 	else:
 		push_warning("[BuildMode] UI/BuildUI not found")
 
+func _on_build_ui_building_selected(building_id: String) -> void:
+	# Z UI prišlo, že hráč chce stavať konkrétnu budovu.
+	# BuildMode rieši len EXTERIOR veci (foundation + extractory).
 
-## Reakcia na kliky v spodnej lište – Build=0
-func on_ui_tool_requested(tool_id: int) -> void:
 	dragging = false
 
-	match tool_id:
-		0:
-			# Build → foundation (ťahanie obdĺžnika)
+	match building_id:
+		"foundation_basic":
+			# náš pôvodný FOUNDATION režim (ťahanie rectu)
 			current_tool = Tool.EXTERIOR_COMPLEX
-			if terrain_grid != null:
-				hover_cell = _mouse_cell()
-			print("[BuildMode] Tool=FOUNDATION; hover=", hover_cell, " tg=", terrain_grid)
 
-		2:
-			# Utilities → Extractor tool (stavba na resource node)
+		"ice_mine_basic", "bm_extractor":
+			# pôvodný EXTRACTOR režim
 			current_tool = Tool.EXTERIOR_EXTRACTOR
-			if terrain_grid != null:
-				hover_cell = _mouse_cell()
-			print("[BuildMode] Tool=EXTRACTOR; hover=", hover_cell, " tg=", terrain_grid)
 
 		_:
+			# ostatné id (interiér, objects) BuildMode ignoruje – to bude riešiť RoomMode
 			current_tool = Tool.NONE
-			print("[BuildMode] Tool=NONE")
+			if DebugFlags.MASTER_DEBUG and DebugFlags.DEBUG_CONSTRUCTION:
+				print("[BuildMode] Ignoring building_id %s in exterior BuildMode" % building_id)
+			return
+
+	# refresh hover_cell, aby ghost sedel na myši
+	if terrain_grid != null:
+		hover_cell = _mouse_cell()
+
+	if DebugFlags.MASTER_DEBUG and DebugFlags.DEBUG_CONSTRUCTION:
+		print("[BuildMode] Selected building %s -> tool=%s hover=%s tg=%s" % [
+			building_id,
+			str(current_tool),
+			hover_cell,
+			str(terrain_grid)
+		])
 
 	queue_redraw()
 
+## Reakcia na kliky v spodnej lište – Build=0
+## OBSOLETE FUNCTION
+#func on_ui_tool_requested(tool_id: int) -> void:
+#	dragging = false
+#
+#	match tool_id:
+#		0:
+#			# Build → foundation (ťahanie obdĺžnika)
+#			current_tool = Tool.EXTERIOR_COMPLEX
+#			if terrain_grid != null:
+#				hover_cell = _mouse_cell()
+#			print("[BuildMode] Tool=FOUNDATION; hover=", hover_cell, " tg=", terrain_grid)
+#
+#		2:
+#			# Utilities → Extractor tool (stavba na resource node)
+#			current_tool = Tool.EXTERIOR_EXTRACTOR
+#			if terrain_grid != null:
+#				hover_cell = _mouse_cell()
+#			print("[BuildMode] Tool=EXTRACTOR; hover=", hover_cell, " tg=", terrain_grid)
+#
+#		_:
+#			current_tool = Tool.NONE
+#			print("[BuildMode] Tool=NONE")
+#
+#	queue_redraw()
+
 
 ## Vstupy myši: začiatok/koniec ťahania a klik pre extractor.
-func _unhandled_input(e: InputEvent) -> void:
-	# ESC → zrušiť drag a tool
-	if e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_ESCAPE:
-		dragging = false
-		current_tool = Tool.NONE
-		queue_redraw()
-		return
+func _unhandled_input(event: InputEvent) -> void:
+	# 1) RMB = zrušiť aktuálny build (foundation / extractor / čokoľvek)
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
+			_cancel_build_selection()
+			get_viewport().set_input_as_handled()
+			return
 
-	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
-		if e.pressed:
-			if terrain_grid == null:
-				return
+	# 2) ESC = zrušiť build rovnako ako RMB
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_ESCAPE:
+			_cancel_build_selection()
+			get_viewport().set_input_as_handled()
+			return
 
-			if current_tool == Tool.EXTERIOR_COMPLEX:
-				# Začiatok ťahania obdĺžnika pre foundation
-				dragging = true
-				drag_a = _mouse_cell()
-				drag_b = drag_a
-				print("[BuildMode] Drag start @", drag_a)
+	# 3) LMB = začiatok/koniec stavby
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed:
+				if terrain_grid == null:
+					return
+
+				if current_tool == Tool.EXTERIOR_COMPLEX:
+					# Začiatok ťahania obdĺžnika pre foundation
+					dragging = true
+					drag_a = _mouse_cell()
+					drag_b = drag_a
+					print("[BuildMode] Drag start @", drag_a)
+					queue_redraw()
+
+				elif current_tool == Tool.EXTERIOR_EXTRACTOR:
+					# Extractor: snap na najbližší voľný ResourceNode v dosahu
+					var near: ResourceNode = _find_nearest_free_node(get_global_mouse_position(), SNAP_RADIUS_PX)
+					if near != null:
+						_start_extractor_at_node(near)
+					else:
+						print("[BuildMode] No ResourceNode near cursor – extractor must be placed on a node.")
+			else:
+				# Uvoľnenie LMB
+				if dragging and current_tool == Tool.EXTERIOR_COMPLEX:
+					print("[BuildMode] Drag end   @", drag_b)
+					_submit_construction(drag_a, drag_b)
+				dragging = false
 				queue_redraw()
 
-			elif current_tool == Tool.EXTERIOR_EXTRACTOR:
-				# Extractor: snap na najbližší voľný ResourceNode v dosahu
-				var near: ResourceNode = _find_nearest_free_node(get_global_mouse_position(), SNAP_RADIUS_PX)
-				if near != null:
-					_start_extractor_at_node(near)
-				else:
-					print("[BuildMode] No ResourceNode near cursor – extractor must be placed on a node.")
-		else:
-			# Uvoľnenie LMB
-			if dragging and current_tool == Tool.EXTERIOR_COMPLEX:
-				print("[BuildMode] Drag end   @", drag_b)
-				_submit_construction(drag_a, drag_b)
-			dragging = false
-			queue_redraw()
-
-	elif e is InputEventMouseMotion:
+	# 4) Pohyb myšou = update ghost footprintu
+	elif event is InputEventMouseMotion:
 		if terrain_grid == null:
 			return
 
@@ -156,9 +203,9 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 		return
 
 	var building_id: String = "foundation_basic"
+	var top_left_cell := Vector2i(minx, miny)
 
 	# --- VALIDÁCIA PLACEMENTU cez PlacementService ---------------------------
-	# rect_drag footprint – použijeme pôvodné a,b (funkcia už rieši min/max)
 	var footprint: Array[Vector2i] = PlacementService.get_footprint(
 		building_id,
 		a,
@@ -186,10 +233,10 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 			building_id,
 			ghost_info.get("errors", [])
 		])
-		return  # STOP – foundation sa nepostaví
+		return
 	# -------------------------------------------------------------------------
 
-	# --- RESOURCE COST: cez BuildingsCfg/ConstructionServiceScript ------------------
+	# --- RESOURCE COST -------------------------------------------------------
 	var cost: Dictionary = ConstructionServiceScript.compute_cost(building_id, size)
 	if not cost.is_empty():
 		if not State.try_spend(cost):
@@ -213,13 +260,12 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 		push_error("[BuildMode] construction_root not found")
 		return
 
-	# --- ConstructionSite cez ConstructionServiceScript ----------------------------
 	var site: Node2D = ConstructionServiceScript.spawn_site({
 		"building_id": building_id,
 		"site_scene": construction_site_scene,
 		"construction_parent": construction_root_node,
 		"terrain_grid": terrain_grid,
-		"top_left_cell": Vector2i(minx, miny),
+		"top_left_cell": top_left_cell,
 		"size_cells": size,
 		"cell_px": cell_px,
 		"buildings_root_path": buildings_root,
@@ -230,8 +276,13 @@ func _submit_construction(a: Vector2i, b: Vector2i) -> void:
 	if site == null:
 		return
 
-	print("[BuildMode] ConstructionSite created @", Vector2i(minx, miny),
+	# 💡 TU: hub foundation rect do GameState (už pri začatí stavby)
+	var hub_rect := Rect2i(top_left_cell, size)
+	State.set_hub_foundation_rect(hub_rect)
+
+	print("[BuildMode] ConstructionSite created @", top_left_cell,
 		" size=", size, " cost=", cost)
+
 
 
 # --- EXTRACTOR: spustenie stavby priamo na ResourceNode (snap center) --------
@@ -691,3 +742,18 @@ func _draw_ghost_tile(cell: Vector2i, state_idx: int) -> void:
 			draw_rect(rect, Color(1, 1, 0.2, 0.35), true)
 
 	draw_rect(rect, BuildCfg.GHOST_TILE_STROKE, false, 1.5)
+
+func _cancel_build_selection() -> void:
+	dragging = false
+	current_tool = Tool.NONE
+	current_building_id = ""
+
+	# pokus o vyčistenie UI (ak existuje BuildUI)
+	var ui := get_node_or_null("../UI/BuildUI")
+	if ui != null and ui is BuildUI:
+		(ui as BuildUI).clear_selection()
+
+	if DebugFlags.MASTER_DEBUG and DebugFlags.DEBUG_CONSTRUCTION:
+		print("[BuildMode] Build selection cancelled (RMB).")
+
+	queue_redraw()
